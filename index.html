@@ -92,7 +92,6 @@
       line-height: 1;
       width: 28px;
       height: 28px;
-      cursor: pointer;
     }
     .star.on { color: #FFB000; }
     .up { color: #3DDC84; }
@@ -111,6 +110,7 @@
       padding: 10px 8px;
       font-size: 11px;
     }
+    .hint { color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
     .center {
       min-height: calc(100vh - 56px);
       display: flex;
@@ -119,7 +119,44 @@
       justify-content: center;
       gap: 16px;
     }
-    .hint { color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
+    .pair-card { padding: 20px 16px 0; }
+    .pair-sym {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      color: #8A7000;
+    }
+    .pair-price {
+      margin-top: 8px;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .pair-move {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+    }
+    .stamp {
+      margin-top: 18px;
+      padding: 10px 12px;
+      border: 1px solid #FFB000;
+      letter-spacing: 0.12em;
+      font-size: 13px;
+    }
+    .log {
+      margin: 18px 0 0;
+      border: 1px solid #2A2A2A;
+      min-height: 220px;
+    }
+    .log-line {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 12px;
+      color: #C49A00;
+    }
+    .log-line:last-child { border-bottom: 0; }
   </style>
 </head>
 <body>
@@ -149,16 +186,20 @@
   </section>
 
   <section id="pair" class="screen">
-    <div class="center">
-      <h1 id="pairTitle">BTCUSDT</h1>
-      <p class="hint">DAY 5 · TAP BACK TO LIST</p>
+    <div class="pair-card">
+      <div class="pair-sym" id="pairTitle">BTCUSDT</div>
+      <div class="pair-price" id="pairPrice">97241.20</div>
+      <div class="pair-move" id="pairMove"></div>
+      <div class="stamp">REGIME  MIXED · SINCE 13:41</div>
+      <div class="label">TAPE</div>
+      <div class="log" id="pairLog"></div>
     </div>
   </section>
 
   <section id="access" class="screen">
     <div class="center">
       <h1>ACCESS</h1>
-      <p class="hint">DAY 5 · TICKET SCREEN</p>
+      <p class="hint">DAY 6 · TICKET SCREEN</p>
     </div>
   </section>
 
@@ -175,12 +216,19 @@
       { id: "LINKUSDT", px: "18.40", chg: 0.28 },
       { id: "DOTUSDT", px: "6.21", chg: -0.54 }
     ];
-    var DEFAULT_WATCH = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
+    var LOGS = [
+      "13:41:02  ATR  +18% vs 15m",
+      "13:41:14  VOL  Z=2.4",
+      "13:41:26  ROC  5m = +0.31%",
+      "13:41:38  BB WIDTH  expanded",
+      "13:41:50  Z-SCORE  MA20 = 1.7",
+      "13:42:02  NO REGIME SHIFT"
+    ];
     var watch = [];
 
     function loadWatch() {
-      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || DEFAULT_WATCH.slice(); }
-      catch (e) { watch = DEFAULT_WATCH.slice(); }
+      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
+      catch (e) { watch = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
     }
     function saveWatch() { localStorage.setItem("watch", JSON.stringify(watch)); }
     function isWatched(id) { return watch.indexOf(id) !== -1; }
@@ -192,14 +240,14 @@
     }
     function findPair(id) {
       for (var i = 0; i < PAIRS.length; i++) if (PAIRS[i].id === id) return PAIRS[i];
-      return null;
+      return PAIRS[0];
     }
     function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
 
     function rowHtml(p, withStar) {
       var star = withStar
-        ? '<button class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
+        ? '<button type="button" class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
         : "";
       var cols = withStar
         ? star + "<span>" + p.id + "</span><span>" + p.px + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>"
@@ -209,23 +257,32 @@
 
     function draw() {
       var q = (document.getElementById("search").value || "").trim().toUpperCase();
-      var watchBox = document.getElementById("watch");
       if (!watch.length) {
-        watchBox.innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+        document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
       } else {
-        watchBox.innerHTML = watch.map(function (id) {
+        document.getElementById("watch").innerHTML = watch.map(function (id) {
           var p = findPair(id);
           return p ? rowHtml(p, true) : "";
         }).join("");
       }
-
       var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
       document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
       document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
-
       document.getElementById("list").innerHTML = PAIRS.filter(function (p) {
         return !q || p.id.indexOf(q) !== -1;
       }).map(function (p) { return rowHtml(p, true); }).join("") || '<p class="hint" style="padding:16px;">NO MATCH</p>';
+    }
+
+    function fillPair(id) {
+      var p = findPair(id);
+      document.getElementById("pairTitle").textContent = p.id;
+      document.getElementById("pairPrice").textContent = p.px;
+      document.getElementById("pairMove").innerHTML =
+        '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + "</span>" +
+        '<span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
+      document.getElementById("pairLog").innerHTML = LOGS.map(function (line) {
+        return '<div class="log-line">' + line + "</div>";
+      }).join("");
     }
 
     function show(name, pairId) {
@@ -240,7 +297,7 @@
         left.href = "#markets";
         left.textContent = "←";
       }
-      if (pairId) document.getElementById("pairTitle").textContent = pairId;
+      if (name === "pair") fillPair(pairId || "BTCUSDT");
     }
 
     function route() {
