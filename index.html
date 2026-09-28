@@ -13,170 +13,56 @@
       min-height: 100vh;
     }
     .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      height: 56px;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #2A2A2A;
-      background: #000;
+      position: sticky; top: 0; z-index: 10; height: 56px; padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #2A2A2A; background: #000;
     }
     .left, .help {
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-      color: #FFB000;
-      text-decoration: none;
-      letter-spacing: 0.08em;
-      font-size: 14px;
+      min-height: 44px; display: flex; align-items: center;
+      color: #FFB000; text-decoration: none; letter-spacing: 0.08em; font-size: 14px;
     }
     .left { gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #FFB000; }
-    .help {
-      min-width: 64px;
-      padding: 0 12px;
-      border: 1px solid #FFB000;
-      justify-content: center;
-      letter-spacing: 0.12em;
-    }
+    .help { min-width: 64px; padding: 0 12px; border: 1px solid #FFB000; justify-content: center; letter-spacing: 0.12em; }
     .screen { display: none; padding-bottom: 28px; }
     .screen.active { display: block; }
-    .label {
-      padding: 16px 16px 6px;
-      font-size: 11px;
-      letter-spacing: 0.14em;
-      color: #8A7000;
-    }
-    .empty {
-      margin: 8px 16px 0;
-      padding: 14px;
-      border: 1px dashed #2A2A2A;
-      color: #8A7000;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-    }
+    .label { padding: 16px 16px 6px; font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
+    .empty { margin: 8px 16px 0; padding: 14px; border: 1px dashed #2A2A2A; color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
     .search-wrap { padding: 8px 16px 4px; }
     .search {
-      width: 100%;
-      height: 40px;
-      background: #0a0a0a;
-      border: 1px solid #2A2A2A;
-      color: #FFB000;
-      padding: 0 12px;
-      font: inherit;
-      font-size: 14px;
-      outline: none;
+      width: 100%; height: 40px; background: #0a0a0a; border: 1px solid #2A2A2A;
+      color: #FFB000; padding: 0 12px; font: inherit; font-size: 14px; outline: none;
     }
     .search::placeholder { color: #6a5500; }
     .row {
-      width: calc(100% - 32px);
-      margin: 8px auto 0;
-      padding: 12px 12px 12px 8px;
-      border: 1px solid #2A2A2A;
-      color: #FFB000;
-      text-decoration: none;
-      display: grid;
-      grid-template-columns: 28px 1.15fr 1fr auto;
-      gap: 8px;
-      align-items: center;
-      min-height: 52px;
+      width: calc(100% - 32px); margin: 8px auto 0; padding: 12px 12px 12px 8px;
+      border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none;
+      display: grid; grid-template-columns: 28px 1.15fr 1fr auto; gap: 8px; align-items: center; min-height: 52px;
     }
-    .star {
-      border: 0;
-      background: transparent;
-      color: #5a4500;
-      font-size: 18px;
-      line-height: 1;
-      width: 28px;
-      height: 28px;
-    }
+    .star { border: 0; background: transparent; color: #5a4500; font-size: 18px; width: 28px; height: 28px; }
     .star.on { color: #FFB000; }
     .up { color: #3DDC84; }
     .down { color: #FF4D4D; }
-    .boards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      padding: 0 16px;
-    }
+    .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px; }
     .board { min-width: 0; }
-    .board .row {
-      width: 100%;
-      margin: 8px 0 0;
-      grid-template-columns: 1fr auto;
-      padding: 10px 8px;
-      font-size: 11px;
-    }
+    .board .row { width: 100%; margin: 8px 0 0; grid-template-columns: 1fr auto; padding: 10px 8px; font-size: 11px; }
     .hint { color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
-    .center {
-      min-height: calc(100vh - 56px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-    }
+    .feed { padding: 8px 16px 0; font-size: 11px; letter-spacing: 0.12em; color: #8A7000; }
     .pair-card { padding: 20px 16px 0; }
     .pair-sym { font-size: 12px; letter-spacing: 0.16em; color: #8A7000; }
     .pair-price { margin-top: 8px; font-size: 42px; line-height: 1; }
     .pair-move { margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 16px; }
-    .stamp {
-      margin-top: 18px;
-      padding: 10px 12px;
-      border: 1px solid #FFB000;
-      letter-spacing: 0.12em;
-      font-size: 13px;
-    }
+    .stamp { margin-top: 18px; padding: 10px 12px; border: 1px solid #FFB000; letter-spacing: 0.12em; font-size: 13px; }
     .log { margin: 18px 0 0; border: 1px solid #2A2A2A; }
-    .log-line {
-      padding: 8px 12px;
-      border-bottom: 1px solid #1a1a1a;
-      font-size: 12px;
-      color: #C49A00;
-    }
-    .log-line:last-child { border-bottom: 0; }
+    .log-line { padding: 8px 12px; border-bottom: 1px solid #1a1a1a; font-size: 12px; color: #C49A00; }
     .access { padding: 28px 16px 0; }
     .access-k { font-size: 11px; letter-spacing: 0.16em; color: #8A7000; }
-    .access-days {
-      margin-top: 10px;
-      font-size: 56px;
-      line-height: 1;
-    }
+    .access-days { margin-top: 10px; font-size: 56px; line-height: 1; }
     .access-sub { margin-top: 8px; font-size: 13px; letter-spacing: 0.1em; }
-    .btn {
-      display: block;
-      width: 100%;
-      margin-top: 24px;
-      height: 48px;
-      border: 1px solid #FFB000;
-      background: #FFB000;
-      color: #000;
-      font: inherit;
-      font-size: 14px;
-      letter-spacing: 0.14em;
-    }
-    .btn.ghost {
-      margin-top: 10px;
-      background: transparent;
-      color: #FFB000;
-    }
-    .legal {
-      margin-top: 24px;
-      font-size: 10px;
-      line-height: 1.5;
-      color: #6a5500;
-    }
-    .install {
-      margin-top: 18px;
-      padding: 12px;
-      border: 1px dashed #2A2A2A;
-      font-size: 11px;
-      line-height: 1.6;
-      color: #8A7000;
-    }
+    .btn { display: block; width: 100%; margin-top: 24px; height: 48px; border: 1px solid #FFB000; background: #FFB000; color: #000; font: inherit; letter-spacing: 0.14em; }
+    .btn.ghost { margin-top: 10px; background: transparent; color: #FFB000; }
+    .legal { margin-top: 24px; font-size: 10px; line-height: 1.5; color: #6a5500; }
+    .install { margin-top: 18px; padding: 12px; border: 1px dashed #2A2A2A; font-size: 11px; line-height: 1.6; color: #8A7000; }
   </style>
 </head>
 <body>
@@ -186,6 +72,7 @@
   </header>
 
   <section id="markets" class="screen">
+    <div class="feed" id="feedStatus">FEED · LOADING</div>
     <div class="label">WATCHLIST</div>
     <div id="watch"></div>
     <div class="search-wrap">
@@ -208,7 +95,7 @@
   <section id="pair" class="screen">
     <div class="pair-card">
       <div class="pair-sym" id="pairTitle">BTCUSDT</div>
-      <div class="pair-price" id="pairPrice">97241.20</div>
+      <div class="pair-price" id="pairPrice">—</div>
       <div class="pair-move" id="pairMove"></div>
       <div class="stamp">REGIME  MIXED · SINCE 13:41</div>
       <div class="label">TAPE</div>
@@ -223,29 +110,14 @@
       <div class="access-sub" id="daysLabel">DAYS LEFT</div>
       <button class="btn" id="extendBtn" type="button">EXTEND 30D</button>
       <button class="btn ghost" id="payBtn" type="button">PAY VIA GCASH / MAYA</button>
-      <div class="install" id="installHint">
-        ADD TO HOME SCREEN · iPhone: Share → Add to Home Screen. Android: menu → Add to Home screen.
-      </div>
-      <p class="legal">
-        Not investment advice. Market regime labels are descriptive only and may be delayed or wrong.
-        No buy or sell recommendation is given. You trade at your own risk. Terms of use apply.
-      </p>
+      <div class="install">ADD TO HOME SCREEN · iPhone: Share → Add to Home Screen. Android: menu → Add to Home screen.</div>
+      <p class="legal">Not investment advice. Market regime labels are descriptive only. No buy or sell recommendation is given.</p>
     </div>
   </section>
 
   <script>
-    var PAIRS = [
-      { id: "BTCUSDT", px: "97241.20", chg: 1.24 },
-      { id: "ETHUSDT", px: "3521.80", chg: -0.62 },
-      { id: "SOLUSDT", px: "178.45", chg: 3.11 },
-      { id: "BNBUSDT", px: "612.30", chg: 0.44 },
-      { id: "XRPUSDT", px: "2.184", chg: -1.08 },
-      { id: "ADAUSDT", px: "0.842", chg: 0.91 },
-      { id: "DOGEUSDT", px: "0.168", chg: -2.35 },
-      { id: "AVAXUSDT", px: "38.12", chg: 1.77 },
-      { id: "LINKUSDT", px: "18.40", chg: 0.28 },
-      { id: "DOTUSDT", px: "6.21", chg: -0.54 }
-    ];
+    var WANT = ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","AVAXUSDT","LINKUSDT","DOTUSDT"];
+    var PAIRS = WANT.map(function (id) { return { id: id, px: "—", chg: 0 }; });
     var LOGS = [
       "13:41:02  ATR  +18% vs 15m",
       "13:41:14  VOL  Z=2.4",
@@ -257,9 +129,10 @@
     var DAY_MS = 24 * 60 * 60 * 1000;
     var watch = [];
 
+    function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function loadWatch() {
-      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
-      catch (e) { watch = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
+      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
+      catch (e) { watch = ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
     }
     function saveWatch() { localStorage.setItem("watch", JSON.stringify(watch)); }
     function isWatched(id) { return watch.indexOf(id) !== -1; }
@@ -273,23 +146,23 @@
       for (var i = 0; i < PAIRS.length; i++) if (PAIRS[i].id === id) return PAIRS[i];
       return PAIRS[0];
     }
-    function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
+    function fmt(n) { return (n > 0 ? "+" : "") + Number(n).toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
+    function nicePx(x) {
+      var n = Number(x);
+      if (!isFinite(n)) return "—";
+      if (n >= 1000) return n.toFixed(2);
+      if (n >= 1) return n.toFixed(3);
+      return n.toFixed(5);
+    }
 
     function getUntil() {
-      var raw = localStorage.getItem("accessUntil");
-      var n = raw ? parseInt(raw, 10) : 0;
-      if (!n) {
-        n = Date.now() + 30 * DAY_MS;
-        localStorage.setItem("accessUntil", String(n));
-      }
+      var n = parseInt(localStorage.getItem("accessUntil") || "0", 10);
+      if (!n) { n = Date.now() + 30 * DAY_MS; localStorage.setItem("accessUntil", String(n)); }
       return n;
     }
-    function daysLeft() {
-      return Math.max(0, Math.ceil((getUntil() - Date.now()) / DAY_MS));
-    }
     function drawAccess() {
-      var d = daysLeft();
+      var d = Math.max(0, Math.ceil((getUntil() - Date.now()) / DAY_MS));
       document.getElementById("daysLeft").textContent = d;
       document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
     }
@@ -300,19 +173,14 @@
         : "";
       var cols = withStar
         ? star + "<span>" + p.id + "</span><span>" + p.px + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>"
-        : "<span>" + p.id.replace("USDT", "") + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>";
+        : "<span>" + p.id.replace("USDT","") + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>";
       return '<a class="row" href="#pair/' + p.id + '">' + cols + "</a>";
     }
 
     function draw() {
       var q = (document.getElementById("search").value || "").trim().toUpperCase();
-      if (!watch.length) {
-        document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
-      } else {
-        document.getElementById("watch").innerHTML = watch.map(function (id) {
-          return rowHtml(findPair(id), true);
-        }).join("");
-      }
+      if (!watch.length) document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+      else document.getElementById("watch").innerHTML = watch.map(function (id) { return rowHtml(findPair(id), true); }).join("");
       var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
       document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
       document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
@@ -333,6 +201,26 @@
       }).join("");
     }
 
+    function loadPrices() {
+      setFeed("FEED · LOADING");
+      fetch("https://api.binance.com/api/v3/ticker/24hr")
+        .then(function (res) { return res.json(); })
+        .then(function (rows) {
+          var map = {};
+          for (var i = 0; i < rows.length; i++) map[rows[i].symbol] = rows[i];
+          PAIRS = WANT.map(function (id) {
+            var r = map[id];
+            return r
+              ? { id: id, px: nicePx(r.lastPrice), chg: Number(r.priceChangePercent) }
+              : { id: id, px: "—", chg: 0 };
+          });
+          setFeed("FEED · BINANCE 24H");
+          draw();
+          if ((location.hash || "").indexOf("#pair") === 0) fillPair(location.hash.split("/")[1]);
+        })
+        .catch(function () { setFeed("FEED DELAYED"); });
+    }
+
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) {
         el.classList.toggle("active", el.id === name);
@@ -348,7 +236,6 @@
       if (name === "pair") fillPair(pairId || "BTCUSDT");
       if (name === "access") drawAccess();
     }
-
     function route() {
       var hash = location.hash || "#markets";
       if (hash.indexOf("#pair") === 0) show("pair", hash.split("/")[1] || "BTCUSDT");
@@ -365,9 +252,7 @@
     });
     document.getElementById("search").addEventListener("input", draw);
     document.getElementById("extendBtn").addEventListener("click", function () {
-      var now = Date.now();
-      var until = Math.max(getUntil(), now) + 30 * DAY_MS;
-      localStorage.setItem("accessUntil", String(until));
+      localStorage.setItem("accessUntil", String(Math.max(getUntil(), Date.now()) + 30 * DAY_MS));
       drawAccess();
     });
     document.getElementById("payBtn").addEventListener("click", function () {
@@ -377,6 +262,7 @@
     loadWatch();
     getUntil();
     draw();
+    loadPrices();
     window.addEventListener("hashchange", route);
     route();
   </script>
