@@ -55,6 +55,7 @@
     .stamp { margin-top: 18px; padding: 10px 12px; border: 1px solid #FFB000; letter-spacing: 0.12em; font-size: 13px; }
     .log { margin: 18px 0 0; border: 1px solid #2A2A2A; }
     .log-line { padding: 8px 12px; border-bottom: 1px solid #1a1a1a; font-size: 12px; color: #C49A00; }
+    .live { margin-top: 8px; font-size: 11px; letter-spacing: 0.12em; color: #8A7000; }
     .access { padding: 28px 16px 0; }
     .access-k { font-size: 11px; letter-spacing: 0.16em; color: #8A7000; }
     .access-days { margin-top: 10px; font-size: 56px; line-height: 1; }
@@ -97,6 +98,7 @@
       <div class="pair-sym" id="pairTitle">BTCUSDT</div>
       <div class="pair-price" id="pairPrice">—</div>
       <div class="pair-move" id="pairMove"></div>
+      <div class="live" id="pairLive">LIVE · OFF</div>
       <div class="stamp">REGIME  MIXED · SINCE 13:41</div>
       <div class="label">TAPE</div>
       <div class="log" id="pairLog"></div>
@@ -120,8 +122,7 @@
       BTC: "BTCUSDT", BITCOIN: "BTCUSDT",
       ETH: "ETHUSDT", ETHEREUM: "ETHUSDT", ETHER: "ETHUSDT",
       SOL: "SOLUSDT", SOLANA: "SOLUSDT",
-      BNB: "BNBUSDT",
-      XRP: "XRPUSDT", RIPPLE: "XRPUSDT",
+      BNB: "BNBUSDT", XRP: "XRPUSDT", RIPPLE: "XRPUSDT",
       ADA: "ADAUSDT", CARDANO: "ADAUSDT",
       DOGE: "DOGEUSDT", DOGECOIN: "DOGEUSDT",
       AVAX: "AVAXUSDT", AVALANCHE: "AVAXUSDT",
@@ -140,8 +141,12 @@
     var CATALOG = [];
     var watch = [];
     var busy = false;
+    var sock = null;
+    var poll = null;
+    var openId = "";
 
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
+    function setLive(t) { document.getElementById("pairLive").textContent = t; }
     function loadWatch() {
       try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
       catch (e) { watch = ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
@@ -177,15 +182,12 @@
       document.getElementById("daysLeft").textContent = d;
       document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
     }
-    function norm(q) {
-      return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    }
+    function norm(q) { return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
     function matchPair(p, q) {
       if (!q) return false;
       if (p.id.indexOf(q) !== -1) return true;
       if (p.id.replace("USDT", "").indexOf(q) !== -1) return true;
-      var a = ALIAS[q];
-      return a === p.id;
+      return ALIAS[q] === p.id;
     }
     function rowHtml(p, withStar) {
       var star = withStar
@@ -198,43 +200,89 @@
     }
     function draw() {
       var q = norm(document.getElementById("search").value);
-      var watchBox = document.getElementById("watch");
-      if (!watch.length) watchBox.innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
-      else watchBox.innerHTML = watch.map(function (id) { return rowHtml(findPair(id), true); }).join("");
-
+      if (!watch.length) document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+      else document.getElementById("watch").innerHTML = watch.map(function (id) { return rowHtml(findPair(id), true); }).join("");
       var ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
       document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
       document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
-
-      var rows;
-      if (q) {
-        rows = CATALOG.filter(function (p) { return matchPair(p, q); }).slice(0, 40);
-        document.getElementById("listLabel").textContent = "SEARCH";
-      } else {
-        rows = CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
-        document.getElementById("listLabel").textContent = "MARKETS · TOP VOL";
-      }
+      var rows = q
+        ? CATALOG.filter(function (p) { return matchPair(p, q); }).slice(0, 40)
+        : CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
+      document.getElementById("listLabel").textContent = q ? "SEARCH" : "MARKETS · TOP VOL";
       document.getElementById("list").innerHTML = rows.length
         ? rows.map(function (p) { return rowHtml(p, true); }).join("")
         : '<p class="hint" style="padding:16px;">NO MATCH</p>';
     }
-    function fillPair(id) {
-      var p = findPair(id);
+    function paintPair(p) {
       document.getElementById("pairTitle").textContent = p.id;
       document.getElementById("pairPrice").textContent = p.px;
       document.getElementById("pairMove").innerHTML =
         '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + "</span>" +
         '<span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
+    }
+    function fillPair(id) {
+      paintPair(findPair(id));
       document.getElementById("pairLog").innerHTML = LOGS.map(function (line) {
         return '<div class="log-line">' + line + "</div>";
       }).join("");
     }
     function isSpotUsdt(sym) {
-      if (!sym || sym.length < 6) return false;
-      if (sym.slice(-4) !== "USDT") return false;
+      if (!sym || sym.slice(-4) !== "USDT") return false;
       if (sym.indexOf("UP") !== -1 || sym.indexOf("DOWN") !== -1) return false;
       if (sym.indexOf("BEAR") !== -1 || sym.indexOf("BULL") !== -1) return false;
       return true;
+    }
+    function stopLive() {
+      openId = "";
+      if (poll) { clearInterval(poll); poll = null; }
+      if (sock) {
+        try { sock.onclose = null; sock.close(); } catch (e) {}
+        sock = null;
+      }
+      setLive("LIVE · OFF");
+    }
+    function restOne(id) {
+      fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id)
+        .then(function (res) { if (!res.ok) throw new Error("bad"); return res.json(); })
+        .then(function (r) {
+          if (openId !== id) return;
+          var p = findPair(id);
+          p.px = nicePx(r.lastPrice);
+          p.chg = Number(r.priceChangePercent) || p.chg;
+          paintPair(p);
+          setLive("LIVE · REST " + id);
+        })
+        .catch(function () { if (openId === id) setLive("FEED DELAYED"); });
+    }
+    function startLive(id) {
+      stopLive();
+      openId = id;
+      fillPair(id);
+      setLive("LIVE · CONNECTING");
+      try {
+        sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker");
+      } catch (e) {
+        restOne(id);
+        poll = setInterval(function () { if (openId === id) restOne(id); }, 3000);
+        return;
+      }
+      sock.onmessage = function (ev) {
+        if (openId !== id) return;
+        var m = JSON.parse(ev.data);
+        var p = findPair(id);
+        p.px = nicePx(m.c);
+        if (m.P !== undefined) p.chg = Number(m.P);
+        paintPair(p);
+        setLive("LIVE · SOCKET " + id);
+      };
+      sock.onerror = function () {};
+      sock.onclose = function () {
+        sock = null;
+        if (openId !== id) return;
+        setLive("LIVE · REST " + id);
+        restOne(id);
+        if (!poll) poll = setInterval(function () { if (openId === id) restOne(id); }, 3000);
+      };
     }
     function loadPrices() {
       if (busy || document.hidden) return;
@@ -247,17 +295,11 @@
           for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
             if (!isSpotUsdt(r.symbol)) continue;
-            next.push({
-              id: r.symbol,
-              px: nicePx(r.lastPrice),
-              chg: Number(r.priceChangePercent) || 0,
-              vol: Number(r.quoteVolume) || 0
-            });
+            next.push({ id: r.symbol, px: nicePx(r.lastPrice), chg: Number(r.priceChangePercent) || 0, vol: Number(r.quoteVolume) || 0 });
           }
           CATALOG = next;
           setFeed("FEED · " + CATALOG.length + " USDT");
           draw();
-          if ((location.hash || "").indexOf("#pair") === 0) fillPair(location.hash.split("/")[1]);
         })
         .catch(function () { setFeed("FEED DELAYED"); })
         .then(function () { busy = false; });
@@ -270,12 +312,13 @@
       if (name === "markets") {
         left.href = "#access";
         left.innerHTML = '<span class="dot"></span>TRIAL';
+        stopLive();
       } else {
         left.href = "#markets";
         left.textContent = "←";
       }
-      if (name === "pair") fillPair(pairId || "BTCUSDT");
-      if (name === "access") drawAccess();
+      if (name === "pair") startLive(pairId || "BTCUSDT");
+      if (name === "access") { stopLive(); drawAccess(); }
     }
     function route() {
       var hash = location.hash || "#markets";
@@ -300,7 +343,11 @@
       window.open("https://t.me/your_cashier_bot", "_blank");
     });
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) loadPrices();
+      if (document.hidden) stopLive();
+      else {
+        loadPrices();
+        if ((location.hash || "").indexOf("#pair") === 0) startLive(location.hash.split("/")[1] || "BTCUSDT");
+      }
     });
 
     loadWatch();
