@@ -127,10 +127,9 @@
       "13:42:02  NO REGIME SHIFT"
     ];
     var DAY_MS = 24 * 60 * 60 * 1000;
+    var URL = "https://data-api.binance.vision/api/v3/ticker/24hr?symbols=" + encodeURIComponent(JSON.stringify(WANT));
     var watch = [];
-    var tick = 0;
     var busy = false;
-    var okCount = 0;
 
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function loadWatch() {
@@ -200,30 +199,24 @@
       }).join("");
     }
 
-    function applyQuote(id, last, chg) {
-      var p = findPair(id);
-      p.px = nicePx(last);
-      p.chg = Number(chg);
-      draw();
-      if ((location.hash || "").indexOf("#pair/" + id) === 0) fillPair(id);
-    }
-
-    function loadOne() {
-      if (busy) return;
-      if (document.hidden) return;
-      var id = WANT[tick % WANT.length];
-      tick += 1;
+    function loadPrices() {
+      if (busy || document.hidden) return;
       busy = true;
-      setFeed("FEED · " + id);
-      var url = "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id;
-      fetch(url)
+      setFeed("FEED · LOADING");
+      fetch(URL)
         .then(function (res) { if (!res.ok) throw new Error("bad"); return res.json(); })
-        .then(function (r) {
-          applyQuote(id, r.lastPrice, r.priceChangePercent);
-          okCount += 1;
-          setFeed("FEED · BINANCE · " + id);
+        .then(function (rows) {
+          var map = {};
+          for (var i = 0; i < rows.length; i++) map[rows[i].symbol] = rows[i];
+          PAIRS = WANT.map(function (id) {
+            var r = map[id];
+            return r ? { id: id, px: nicePx(r.lastPrice), chg: Number(r.priceChangePercent) } : findPair(id);
+          });
+          setFeed("FEED · BINANCE 24H");
+          draw();
+          if ((location.hash || "").indexOf("#pair") === 0) fillPair(location.hash.split("/")[1]);
         })
-        .catch(function () { setFeed("FEED DELAYED · " + id); })
+        .catch(function () { setFeed("FEED DELAYED"); })
         .then(function () { busy = false; });
     }
 
@@ -265,14 +258,14 @@
       window.open("https://t.me/your_cashier_bot", "_blank");
     });
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) loadOne();
+      if (!document.hidden) loadPrices();
     });
 
     loadWatch();
     getUntil();
     draw();
-    loadOne();
-    setInterval(loadOne, 2000);
+    loadPrices();
+    setInterval(loadPrices, 20000);
     window.addEventListener("hashchange", route);
     route();
   </script>
