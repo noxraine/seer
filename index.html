@@ -76,7 +76,7 @@
     <div class="label">WATCHLIST</div>
     <div id="watch"></div>
     <div class="search-wrap">
-      <input id="search" class="search" type="search" placeholder="Search BTC, ETH, SOL…" autocomplete="off">
+      <input id="search" class="search" type="search" placeholder="btc, bitcoin, BTCUSDT" autocomplete="off">
     </div>
     <div class="boards">
       <div class="board">
@@ -88,7 +88,7 @@
         <div id="losers"></div>
       </div>
     </div>
-    <div class="label">MARKETS</div>
+    <div class="label" id="listLabel">MARKETS</div>
     <div id="list"></div>
   </section>
 
@@ -116,8 +116,18 @@
   </section>
 
   <script>
-    var WANT = ["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","AVAXUSDT","LINKUSDT","DOTUSDT"];
-    var PAIRS = WANT.map(function (id) { return { id: id, px: "—", chg: 0 }; });
+    var ALIAS = {
+      BTC: "BTCUSDT", BITCOIN: "BTCUSDT",
+      ETH: "ETHUSDT", ETHEREUM: "ETHUSDT", ETHER: "ETHUSDT",
+      SOL: "SOLUSDT", SOLANA: "SOLUSDT",
+      BNB: "BNBUSDT",
+      XRP: "XRPUSDT", RIPPLE: "XRPUSDT",
+      ADA: "ADAUSDT", CARDANO: "ADAUSDT",
+      DOGE: "DOGEUSDT", DOGECOIN: "DOGEUSDT",
+      AVAX: "AVAXUSDT", AVALANCHE: "AVAXUSDT",
+      LINK: "LINKUSDT", CHAINLINK: "LINKUSDT",
+      DOT: "DOTUSDT", POLKADOT: "DOTUSDT"
+    };
     var LOGS = [
       "13:41:02  ATR  +18% vs 15m",
       "13:41:14  VOL  Z=2.4",
@@ -127,7 +137,7 @@
       "13:42:02  NO REGIME SHIFT"
     ];
     var DAY_MS = 24 * 60 * 60 * 1000;
-    var URL = "https://data-api.binance.vision/api/v3/ticker/24hr?symbols=" + encodeURIComponent(JSON.stringify(WANT));
+    var CATALOG = [];
     var watch = [];
     var busy = false;
 
@@ -145,8 +155,8 @@
       draw();
     }
     function findPair(id) {
-      for (var i = 0; i < PAIRS.length; i++) if (PAIRS[i].id === id) return PAIRS[i];
-      return PAIRS[0];
+      for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i];
+      return { id: id || "BTCUSDT", px: "—", chg: 0, vol: 0 };
     }
     function fmt(n) { return (n > 0 ? "+" : "") + Number(n).toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
@@ -167,6 +177,16 @@
       document.getElementById("daysLeft").textContent = d;
       document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
     }
+    function norm(q) {
+      return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+    function matchPair(p, q) {
+      if (!q) return false;
+      if (p.id.indexOf(q) !== -1) return true;
+      if (p.id.replace("USDT", "").indexOf(q) !== -1) return true;
+      var a = ALIAS[q];
+      return a === p.id;
+    }
     function rowHtml(p, withStar) {
       var star = withStar
         ? '<button type="button" class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
@@ -177,15 +197,26 @@
       return '<a class="row" href="#pair/' + p.id + '">' + cols + "</a>";
     }
     function draw() {
-      var q = (document.getElementById("search").value || "").trim().toUpperCase();
-      if (!watch.length) document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
-      else document.getElementById("watch").innerHTML = watch.map(function (id) { return rowHtml(findPair(id), true); }).join("");
-      var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
-      document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
-      document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
-      document.getElementById("list").innerHTML = PAIRS.filter(function (p) {
-        return !q || p.id.indexOf(q) !== -1;
-      }).map(function (p) { return rowHtml(p, true); }).join("") || '<p class="hint" style="padding:16px;">NO MATCH</p>';
+      var q = norm(document.getElementById("search").value);
+      var watchBox = document.getElementById("watch");
+      if (!watch.length) watchBox.innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+      else watchBox.innerHTML = watch.map(function (id) { return rowHtml(findPair(id), true); }).join("");
+
+      var ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
+      document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
+      document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
+
+      var rows;
+      if (q) {
+        rows = CATALOG.filter(function (p) { return matchPair(p, q); }).slice(0, 40);
+        document.getElementById("listLabel").textContent = "SEARCH";
+      } else {
+        rows = CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
+        document.getElementById("listLabel").textContent = "MARKETS · TOP VOL";
+      }
+      document.getElementById("list").innerHTML = rows.length
+        ? rows.map(function (p) { return rowHtml(p, true); }).join("")
+        : '<p class="hint" style="padding:16px;">NO MATCH</p>';
     }
     function fillPair(id) {
       var p = findPair(id);
@@ -198,28 +229,39 @@
         return '<div class="log-line">' + line + "</div>";
       }).join("");
     }
-
+    function isSpotUsdt(sym) {
+      if (!sym || sym.length < 6) return false;
+      if (sym.slice(-4) !== "USDT") return false;
+      if (sym.indexOf("UP") !== -1 || sym.indexOf("DOWN") !== -1) return false;
+      if (sym.indexOf("BEAR") !== -1 || sym.indexOf("BULL") !== -1) return false;
+      return true;
+    }
     function loadPrices() {
       if (busy || document.hidden) return;
       busy = true;
       setFeed("FEED · LOADING");
-      fetch(URL)
+      fetch("https://data-api.binance.vision/api/v3/ticker/24hr")
         .then(function (res) { if (!res.ok) throw new Error("bad"); return res.json(); })
         .then(function (rows) {
-          var map = {};
-          for (var i = 0; i < rows.length; i++) map[rows[i].symbol] = rows[i];
-          PAIRS = WANT.map(function (id) {
-            var r = map[id];
-            return r ? { id: id, px: nicePx(r.lastPrice), chg: Number(r.priceChangePercent) } : findPair(id);
-          });
-          setFeed("FEED · BINANCE 24H");
+          var next = [];
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            if (!isSpotUsdt(r.symbol)) continue;
+            next.push({
+              id: r.symbol,
+              px: nicePx(r.lastPrice),
+              chg: Number(r.priceChangePercent) || 0,
+              vol: Number(r.quoteVolume) || 0
+            });
+          }
+          CATALOG = next;
+          setFeed("FEED · " + CATALOG.length + " USDT");
           draw();
           if ((location.hash || "").indexOf("#pair") === 0) fillPair(location.hash.split("/")[1]);
         })
         .catch(function () { setFeed("FEED DELAYED"); })
         .then(function () { busy = false; });
     }
-
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) {
         el.classList.toggle("active", el.id === name);
