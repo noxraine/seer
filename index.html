@@ -57,7 +57,7 @@
     .stamp.mixed { border-color: #FFB000; color: #FFB000; }
     .stamp.shock { border-color: #FF4D4D; color: #FF4D4D; }
     .stamp.stale { border-color: #FF4D4D; color: #FF4D4D; }
-    .log { margin: 18px 0 0; border: 1px solid #2A2A2A; }
+    .log { margin: 18px 0 0; border: 1px solid #2A2A2A; max-height: 280px; overflow: auto; }
     .log-line { padding: 8px 12px; border-bottom: 1px solid #1a1a1a; font-size: 12px; color: #C49A00; }
     .live { margin-top: 8px; font-size: 11px; letter-spacing: 0.12em; color: #8A7000; }
     .live.bad { color: #FF4D4D; }
@@ -124,36 +124,27 @@
 
   <script>
     var ALIAS = {
-      BTC: "BTCUSDT", BITCOIN: "BTCUSDT",
-      ETH: "ETHUSDT", ETHEREUM: "ETHUSDT", ETHER: "ETHUSDT",
-      SOL: "SOLUSDT", SOLANA: "SOLUSDT",
-      BNB: "BNBUSDT", XRP: "XRPUSDT", RIPPLE: "XRPUSDT",
-      ADA: "ADAUSDT", CARDANO: "ADAUSDT",
-      DOGE: "DOGEUSDT", DOGECOIN: "DOGEUSDT",
-      AVAX: "AVAXUSDT", AVALANCHE: "AVAXUSDT",
-      LINK: "LINKUSDT", CHAINLINK: "LINKUSDT",
-      DOT: "DOTUSDT", POLKADOT: "DOTUSDT"
+      BTC:"BTCUSDT", BITCOIN:"BTCUSDT", ETH:"ETHUSDT", ETHEREUM:"ETHUSDT", ETHER:"ETHUSDT",
+      SOL:"SOLUSDT", SOLANA:"SOLUSDT", BNB:"BNBUSDT", XRP:"XRPUSDT", RIPPLE:"XRPUSDT",
+      ADA:"ADAUSDT", CARDANO:"ADAUSDT", DOGE:"DOGEUSDT", DOGECOIN:"DOGEUSDT",
+      AVAX:"AVAXUSDT", AVALANCHE:"AVAXUSDT", LINK:"LINKUSDT", CHAINLINK:"LINKUSDT",
+      DOT:"DOTUSDT", POLKADOT:"DOTUSDT"
     };
     var DAY_MS = 24 * 60 * 60 * 1000;
-    var CATALOG = [];
-    var watch = [];
-    var busy = false;
-    var sock = null;
-    var poll = null;
-    var openId = "";
-    var lastBeat = 0;
-    var watchDog = null;
-    var bars = [];
-    var regimeTimer = null;
-    var lastRegimeAt = 0;
-    var lastRegime = "MIXED";
-    var regimeSince = "";
-    var staleOn = false;
+    var CATALOG = [], watch = [], bars = [], tape = [];
+    var busy = false, sock = null, poll = null, openId = "", lastBeat = 0;
+    var watchDog = null, regimeTimer = null, tapeTimer = null, tapeStep = 0;
+    var lastRegimeAt = 0, lastRegime = "MIXED", regimeSince = "", staleOn = false, seeded = false;
 
     function onlineNow() { return navigator.onLine !== false; }
-    function hhmm() {
-      var d = new Date();
-      return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+    function pad(n) { return ("0" + n).slice(-2); }
+    function hhmmss(ts) {
+      var d = ts ? new Date(ts) : new Date();
+      return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+    }
+    function hhmm(ts) {
+      var d = ts ? new Date(ts) : new Date();
+      return pad(d.getHours()) + ":" + pad(d.getMinutes());
     }
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function setLive(t, bad) {
@@ -184,7 +175,6 @@
       setLive("LIVE · " + how + " " + id, false);
       lastBeat = Date.now();
     }
-
     function loadWatch() {
       try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
       catch (e) { watch = ["BTCUSDT","ETHUSDT","SOLUSDT"]; }
@@ -224,7 +214,7 @@
     function matchPair(p, q) {
       if (!q) return false;
       if (p.id.indexOf(q) !== -1) return true;
-      if (p.id.replace("USDT", "").indexOf(q) !== -1) return true;
+      if (p.id.replace("USDT","").indexOf(q) !== -1) return true;
       return ALIAS[q] === p.id;
     }
     function rowHtml(p, withStar) {
@@ -265,21 +255,37 @@
       if (sym.indexOf("BEAR") !== -1 || sym.indexOf("BULL") !== -1) return false;
       return true;
     }
-
+    function mean(a) {
+      if (!a.length) return 0;
+      var s = 0; for (var i = 0; i < a.length; i++) s += a[i];
+      return s / a.length;
+    }
+    function stdev(a) {
+      if (a.length < 2) return 0;
+      var m = mean(a), s = 0;
+      for (var i = 0; i < a.length; i++) s += (a[i] - m) * (a[i] - m);
+      return Math.sqrt(s / a.length);
+    }
     function median(arr) {
       var a = arr.slice().sort(function (x, y) { return x - y; });
-      if (!a.length) return 0;
-      return a[Math.floor(a.length / 2)];
+      return a.length ? a[Math.floor(a.length / 2)] : 0;
     }
     function atr14(list) {
       if (list.length < 16) return 0;
       var s = 0, n = 0;
       for (var i = list.length - 14; i < list.length; i++) {
         var prev = list[i - 1].c;
-        var tr = Math.max(list[i].h - list[i].l, Math.abs(list[i].h - prev), Math.abs(list[i].l - prev));
-        s += tr; n += 1;
+        s += Math.max(list[i].h - list[i].l, Math.abs(list[i].h - prev), Math.abs(list[i].l - prev));
+        n += 1;
       }
       return n ? s / n : 0;
+    }
+    function volZ(list) {
+      var vs = list.map(function (b) { return b.v; });
+      var last = vs[vs.length - 1] || 0;
+      var sd = stdev(vs.slice(0, -1));
+      if (!sd) return 0;
+      return (last - mean(vs.slice(0, -1))) / sd;
     }
     function decideRegime(list) {
       if (!list || list.length < 20) return "MIXED";
@@ -289,13 +295,50 @@
       if (!a) return "MIXED";
       var minuteRange = last.h - last.l;
       var roc5 = Math.abs(last.c - prev5.c);
-      var vols = list.map(function (b) { return b.v; });
-      var volMed = median(vols.slice(0, vols.length - 1));
-      var shock = (minuteRange > 2.2 * a) || (volMed && last.v > 3 * volMed) || (roc5 > 1.8 * a);
-      var steady = (minuteRange < 0.7 * a) && (!volMed || last.v < 1.4 * volMed) && (roc5 < 0.8 * a);
-      if (shock) return "SHOCK";
-      if (steady) return "STEADY";
+      var volMed = median(list.map(function (b) { return b.v; }).slice(0, -1));
+      if (minuteRange > 2.2 * a || (volMed && last.v > 3 * volMed) || roc5 > 1.8 * a) return "SHOCK";
+      if (minuteRange < 0.7 * a && (!volMed || last.v < 1.4 * volMed) && roc5 < 0.8 * a) return "STEADY";
       return "MIXED";
+    }
+    function metricLine(list, kind, ts) {
+      if (!list.length) return hhmmss(ts) + "  WAIT  BARS";
+      var last = list[list.length - 1];
+      var prev5 = list[Math.max(0, list.length - 6)];
+      var a = atr14(list);
+      var roc = prev5.c ? ((last.c - prev5.c) / prev5.c) * 100 : 0;
+      var z = volZ(list);
+      var ratio = a ? (last.h - last.l) / a : 0;
+      if (kind === 0) return hhmmss(ts) + "  VOL Z=" + z.toFixed(1);
+      if (kind === 1) return hhmmss(ts) + "  ATR14 " + (a ? a.toPrecision(4) : "n/a");
+      if (kind === 2) return hhmmss(ts) + "  ROC 5m " + (roc >= 0 ? "+" : "") + roc.toFixed(2) + "%";
+      if (kind === 3) return hhmmss(ts) + "  RANGE/ATR " + ratio.toFixed(2);
+      if (kind === 4) return hhmmss(ts) + "  LAST " + nicePx(last.c);
+      return hhmmss(ts) + "  REGIME HOLD " + lastRegime;
+    }
+    function renderTape() {
+      var box = document.getElementById("pairLog");
+      box.innerHTML = tape.map(function (line) { return '<div class="log-line">' + line + "</div>"; }).join("");
+      box.scrollTop = box.scrollHeight;
+    }
+    function pushTape(line) {
+      tape.push(line);
+      if (tape.length > 18) tape = tape.slice(tape.length - 18);
+      renderTape();
+    }
+    function seedTape(list) {
+      tape = [];
+      if (!list.length) {
+        pushTape(hhmmss() + "  WAIT  HISTORY");
+        return;
+      }
+      var idx = [12, 20, 28, 36, 44, 50, 55, list.length - 1];
+      for (var i = 0; i < idx.length; i++) {
+        var n = Math.min(list.length - 1, idx[i]);
+        var slice = list.slice(0, n + 1);
+        tape.push(metricLine(slice, i % 6, slice[slice.length - 1].t));
+      }
+      seeded = true;
+      renderTape();
     }
     function applyRegime(force) {
       if (staleOn) return;
@@ -305,21 +348,8 @@
       if (name !== lastRegime || !regimeSince) regimeSince = hhmm();
       lastRegimeAt = now;
       setStamp(name, false);
-      var last = bars[bars.length - 1];
-      var a = atr14(bars);
-      var lines = [
-        hhmm() + ":00  REGIME  " + name,
-        hhmm() + ":01  ATR14  " + (a ? a.toPrecision(4) : "n/a"),
-        hhmm() + ":02  RANGE1m / ATR  " + (last && a ? ((last.h - last.l) / a).toFixed(2) : "n/a"),
-        hhmm() + ":03  VOL vs MED  " + (last ? last.v.toFixed(0) : "n/a"),
-        hhmm() + ":04  BARS  " + bars.length + " x 1m",
-        hhmm() + ":05  DESCRIPTIVE ONLY"
-      ];
-      document.getElementById("pairLog").innerHTML = lines.map(function (line) {
-        return '<div class="log-line">' + line + "</div>";
-      }).join("");
     }
-    function loadBars(id) {
+    function loadBars(id, first) {
       fetch("https://data-api.binance.vision/api/v3/klines?symbol=" + id + "&interval=1m&limit=60")
         .then(function (res) { if (!res.ok) throw new Error("bad"); return res.json(); })
         .then(function (rows) {
@@ -328,6 +358,7 @@
             return { t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] };
           });
           applyRegime(true);
+          if (first || !seeded) seedTape(bars);
         })
         .catch(function () { if (openId === id) applyRegime(true); });
     }
@@ -337,10 +368,8 @@
       if (poll) { clearInterval(poll); poll = null; }
       if (watchDog) { clearInterval(watchDog); watchDog = null; }
       if (regimeTimer) { clearInterval(regimeTimer); regimeTimer = null; }
-      if (sock) {
-        try { sock.onclose = null; sock.close(); } catch (e) {}
-        sock = null;
-      }
+      if (tapeTimer) { clearInterval(tapeTimer); tapeTimer = null; }
+      if (sock) { try { sock.onclose = null; sock.close(); } catch (e) {} sock = null; }
       if (!keepStamp) setLive("LIVE · OFF", false);
     }
     function restOne(id) {
@@ -360,18 +389,21 @@
     function startLive(id) {
       stopLive(true);
       openId = id;
-      bars = [];
-      lastRegime = "MIXED";
-      regimeSince = hhmm();
+      bars = []; tape = []; seeded = false; tapeStep = 0;
+      lastRegime = "MIXED"; regimeSince = hhmm();
       fillPair(id);
       setStamp("MIXED", false);
+      document.getElementById("pairLog").innerHTML = '<div class="log-line">' + hhmmss() + "  LOAD  60 x 1m</div>";
       if (!onlineNow()) { markStale(); return; }
       setLive("LIVE · CONNECTING", false);
       lastBeat = Date.now();
-      loadBars(id);
-      regimeTimer = setInterval(function () {
-        if (openId === id) loadBars(id);
-      }, 8000);
+      loadBars(id, true);
+      regimeTimer = setInterval(function () { if (openId === id) loadBars(id, false); }, 8000);
+      tapeTimer = setInterval(function () {
+        if (openId !== id || staleOn || !bars.length) return;
+        pushTape(metricLine(bars, tapeStep % 6, Date.now()));
+        tapeStep += 1;
+      }, 10000);
       try {
         sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker");
       } catch (e) {
