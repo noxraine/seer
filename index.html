@@ -120,24 +120,9 @@
       gap: 16px;
     }
     .pair-card { padding: 20px 16px 0; }
-    .pair-sym {
-      font-size: 12px;
-      letter-spacing: 0.16em;
-      color: #8A7000;
-    }
-    .pair-price {
-      margin-top: 8px;
-      font-size: 42px;
-      line-height: 1;
-      letter-spacing: -0.02em;
-    }
-    .pair-move {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 16px;
-    }
+    .pair-sym { font-size: 12px; letter-spacing: 0.16em; color: #8A7000; }
+    .pair-price { margin-top: 8px; font-size: 42px; line-height: 1; }
+    .pair-move { margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 16px; }
     .stamp {
       margin-top: 18px;
       padding: 10px 12px;
@@ -145,11 +130,7 @@
       letter-spacing: 0.12em;
       font-size: 13px;
     }
-    .log {
-      margin: 18px 0 0;
-      border: 1px solid #2A2A2A;
-      min-height: 220px;
-    }
+    .log { margin: 18px 0 0; border: 1px solid #2A2A2A; }
     .log-line {
       padding: 8px 12px;
       border-bottom: 1px solid #1a1a1a;
@@ -157,6 +138,45 @@
       color: #C49A00;
     }
     .log-line:last-child { border-bottom: 0; }
+    .access { padding: 28px 16px 0; }
+    .access-k { font-size: 11px; letter-spacing: 0.16em; color: #8A7000; }
+    .access-days {
+      margin-top: 10px;
+      font-size: 56px;
+      line-height: 1;
+    }
+    .access-sub { margin-top: 8px; font-size: 13px; letter-spacing: 0.1em; }
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 24px;
+      height: 48px;
+      border: 1px solid #FFB000;
+      background: #FFB000;
+      color: #000;
+      font: inherit;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+    }
+    .btn.ghost {
+      margin-top: 10px;
+      background: transparent;
+      color: #FFB000;
+    }
+    .legal {
+      margin-top: 24px;
+      font-size: 10px;
+      line-height: 1.5;
+      color: #6a5500;
+    }
+    .install {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px dashed #2A2A2A;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #8A7000;
+    }
   </style>
 </head>
 <body>
@@ -197,9 +217,19 @@
   </section>
 
   <section id="access" class="screen">
-    <div class="center">
-      <h1>ACCESS</h1>
-      <p class="hint">DAY 6 · TICKET SCREEN</p>
+    <div class="access">
+      <div class="access-k">ACCESS</div>
+      <div class="access-days" id="daysLeft">30</div>
+      <div class="access-sub" id="daysLabel">DAYS LEFT</div>
+      <button class="btn" id="extendBtn" type="button">EXTEND 30D</button>
+      <button class="btn ghost" id="payBtn" type="button">PAY VIA GCASH / MAYA</button>
+      <div class="install" id="installHint">
+        ADD TO HOME SCREEN · iPhone: Share → Add to Home Screen. Android: menu → Add to Home screen.
+      </div>
+      <p class="legal">
+        Not investment advice. Market regime labels are descriptive only and may be delayed or wrong.
+        No buy or sell recommendation is given. You trade at your own risk. Terms of use apply.
+      </p>
     </div>
   </section>
 
@@ -224,6 +254,7 @@
       "13:41:50  Z-SCORE  MA20 = 1.7",
       "13:42:02  NO REGIME SHIFT"
     ];
+    var DAY_MS = 24 * 60 * 60 * 1000;
     var watch = [];
 
     function loadWatch() {
@@ -245,6 +276,24 @@
     function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
 
+    function getUntil() {
+      var raw = localStorage.getItem("accessUntil");
+      var n = raw ? parseInt(raw, 10) : 0;
+      if (!n) {
+        n = Date.now() + 30 * DAY_MS;
+        localStorage.setItem("accessUntil", String(n));
+      }
+      return n;
+    }
+    function daysLeft() {
+      return Math.max(0, Math.ceil((getUntil() - Date.now()) / DAY_MS));
+    }
+    function drawAccess() {
+      var d = daysLeft();
+      document.getElementById("daysLeft").textContent = d;
+      document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
+    }
+
     function rowHtml(p, withStar) {
       var star = withStar
         ? '<button type="button" class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
@@ -261,8 +310,7 @@
         document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
       } else {
         document.getElementById("watch").innerHTML = watch.map(function (id) {
-          var p = findPair(id);
-          return p ? rowHtml(p, true) : "";
+          return rowHtml(findPair(id), true);
         }).join("");
       }
       var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
@@ -298,6 +346,7 @@
         left.textContent = "←";
       }
       if (name === "pair") fillPair(pairId || "BTCUSDT");
+      if (name === "access") drawAccess();
     }
 
     function route() {
@@ -315,8 +364,18 @@
       toggleWatch(btn.getAttribute("data-star"));
     });
     document.getElementById("search").addEventListener("input", draw);
+    document.getElementById("extendBtn").addEventListener("click", function () {
+      var now = Date.now();
+      var until = Math.max(getUntil(), now) + 30 * DAY_MS;
+      localStorage.setItem("accessUntil", String(until));
+      drawAccess();
+    });
+    document.getElementById("payBtn").addEventListener("click", function () {
+      window.open("https://t.me/your_cashier_bot", "_blank");
+    });
 
     loadWatch();
+    getUntil();
     draw();
     window.addEventListener("hashchange", route);
     route();
