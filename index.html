@@ -111,6 +111,7 @@
       padding: 10px 8px;
       font-size: 11px;
     }
+    .hint { color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
     .center {
       min-height: calc(100vh - 56px);
       display: flex;
@@ -119,7 +120,6 @@
       justify-content: center;
       gap: 16px;
     }
-    .hint { color: #8A7000; font-size: 12px; letter-spacing: 0.08em; }
   </style>
 </head>
 <body>
@@ -175,12 +175,55 @@
       { id: "LINKUSDT", px: "18.40", chg: 0.28 },
       { id: "DOTUSDT", px: "6.21", chg: -0.54 }
     ];
-    var DEFAULT_WATCH = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
     var watch = [];
 
     function loadWatch() {
-      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || DEFAULT_WATCH.slice(); }
-      catch (e) { watch = DEFAULT_WATCH.slice(); }
+      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
+      catch (e) { watch = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
+    }
+    function saveWatch() { localStorage.setItem("watch", JSON.stringify(watch)); }
+    function isWatched(id) { return watch.indexOf(id) !== -1; }
+    function toggleWatch(id) {
+      if (isWatched(id)) watch = watch.filter(function (x) { return x !== id; });
+      else watch.push(id);
+      saveWatch();
+      draw();
+    }
+    function findPair(id) {
+      for (var i = 0; i < PAIRS.length; i++) if (PAIRS[i].id === id) return PAIRS[i];
+      return null;
+    }
+    function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
+    function chgClass(n) { return n >= 0 ? "up" : "down"; }
+    function rowHtml(p, withStar) {
+      var star = withStar
+        ? '<button type="button" class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
+        : "";
+      var cols = withStar
+        ? star + "<span>" + p.id + "</span><span>" + p.px + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>"
+        : "<span>" + p.id.replace("USDT", "") + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>";
+      return '<a class="row" href="#pair/' + p.id + '">' + cols + "</a>";
+    }
+    function draw() {
+      var q = (document.getElementById("search").value || "").trim().toUpperCase();
+      if (!watch.length) {
+        document.getElementById("watch").innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+      } else {
+        document.getElementById("watch").innerHTML = watch.map(function (id) {
+          var p = findPair(id);
+          return p ? rowHtml(p, true) : "";
+        }).join("");
+      }
+      var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
+      document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
+      document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
+      document.getElementById("list").innerHTML = PAIRS.filter(function (p) {
+        return !q || p.id.indexOf(q) !== -1;
+      }).map(function (p) { return rowHtml(p, true); }).join("") || '<p class="hint" style="padding:16px;">NO MATCH</p>';
+    }
+    function loadWatch() {
+      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
+      catch (e) { watch = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]; }
     }
     function saveWatch() { localStorage.setItem("watch", JSON.stringify(watch)); }
     function isWatched(id) { return watch.indexOf(id) !== -1; }
@@ -197,59 +240,6 @@
     function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
 
-    function rowHtml(p, withStar) {
-      var star = withStar
-        ? '<button class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
-        : "";
-      var cols = withStar
-        ? star + "<span>" + p.id + "</span><span>" + p.px + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>"
-        : "<span>" + p.id.replace("USDT", "") + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>";
-      return '<a class="row" href="#pair/' + p.id + '">' + cols + "</a>";
-    }
-
-    function draw() {
-      var q = (document.getElementById("search").value || "").trim().toUpperCase();
-      var watchBox = document.getElementById("watch");
-      if (!watch.length) {
-        watchBox.innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
-      } else {
-        watchBox.innerHTML = watch.map(function (id) {
-          var p = findPair(id);
-          return p ? rowHtml(p, true) : "";
-        }).join("");
-      }
-
-      var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
-      document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
-      document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
-
-      document.getElementById("list").innerHTML = PAIRS.filter(function (p) {
-        return !q || p.id.indexOf(q) !== -1;
-      }).map(function (p) { return rowHtml(p, true); }).join("") || '<p class="hint" style="padding:16px;">NO MATCH</p>';
-    }
-
-    function show(name, pairId) {
-      document.querySelectorAll(".screen").forEach(function (el) {
-        el.classList.toggle("active", el.id === name);
-      });
-      var left = document.getElementById("leftBtn");
-      if (name === "markets") {
-        left.href = "#access";
-        left.innerHTML = '<span class="dot"></span>TRIAL';
-      } else {
-        left.href = "#markets";
-        left.textContent = "←";
-      }
-      if (pairId) document.getElementById("pairTitle").textContent = pairId;
-    }
-
-    function route() {
-      var hash = location.hash || "#markets";
-      if (hash.indexOf("#pair") === 0) show("pair", hash.split("/")[1] || "BTCUSDT");
-      else if (hash === "#access") show("access");
-      else show("markets");
-    }
-
     document.addEventListener("click", function (e) {
       var btn = e.target.closest("[data-star]");
       if (!btn) return;
@@ -258,11 +248,20 @@
       toggleWatch(btn.getAttribute("data-star"));
     });
     document.getElementById("search").addEventListener("input", draw);
+    window.addEventListener("hashchange", function () {
+      var hash = location.hash || "#markets";
+      if (hash.indexOf("#pair") === 0) {
+        show("pair");
+        document.getElementById("pairTitle").textContent = hash.split("/")[1] || "BTCUSDT";
+      } else if (hash === "#access") show("access");
+      else show("markets");
+    });
 
+    var watch = [];
     loadWatch();
     draw();
-    window.addEventListener("hashchange", route);
-    route();
+    if (!location.hash) show("markets");
+    else window.dispatchEvent(new Event("hashchange"));
   </script>
 </body>
 </html>
