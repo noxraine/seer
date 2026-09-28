@@ -42,9 +42,23 @@
       justify-content: center;
       letter-spacing: 0.12em;
     }
-    .screen { display: none; }
+    .screen { display: none; padding-bottom: 28px; }
     .screen.active { display: block; }
-    .search-wrap { padding: 12px 16px 8px; }
+    .label {
+      padding: 16px 16px 6px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: #8A7000;
+    }
+    .empty {
+      margin: 8px 16px 0;
+      padding: 14px;
+      border: 1px dashed #2A2A2A;
+      color: #8A7000;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+    }
+    .search-wrap { padding: 8px 16px 4px; }
     .search {
       width: 100%;
       height: 40px;
@@ -60,18 +74,43 @@
     .row {
       width: calc(100% - 32px);
       margin: 8px auto 0;
-      padding: 14px 16px;
+      padding: 12px 12px 12px 8px;
       border: 1px solid #2A2A2A;
       color: #FFB000;
       text-decoration: none;
       display: grid;
-      grid-template-columns: 1.2fr 1fr auto;
-      gap: 12px;
+      grid-template-columns: 28px 1.15fr 1fr auto;
+      gap: 8px;
       align-items: center;
       min-height: 52px;
     }
+    .star {
+      border: 0;
+      background: transparent;
+      color: #5a4500;
+      font-size: 18px;
+      line-height: 1;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+    }
+    .star.on { color: #FFB000; }
     .up { color: #3DDC84; }
     .down { color: #FF4D4D; }
+    .boards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 16px;
+    }
+    .board { min-width: 0; }
+    .board .row {
+      width: 100%;
+      margin: 8px 0 0;
+      grid-template-columns: 1fr auto;
+      padding: 10px 8px;
+      font-size: 11px;
+    }
     .center {
       min-height: calc(100vh - 56px);
       display: flex;
@@ -90,55 +129,106 @@
   </header>
 
   <section id="markets" class="screen">
-    <div style="padding:12px 16px 8px;">
+    <div class="label">WATCHLIST</div>
+    <div id="watch"></div>
+    <div class="search-wrap">
       <input id="search" class="search" type="search" placeholder="Search BTC, ETH, SOL…" autocomplete="off">
     </div>
+    <div class="boards">
+      <div class="board">
+        <div class="label">GAINERS 24H</div>
+        <div id="gainers"></div>
+      </div>
+      <div class="board">
+        <div class="label">LOSERS 24H</div>
+        <div id="losers"></div>
+      </div>
+    </div>
+    <div class="label">MARKETS</div>
     <div id="list"></div>
   </section>
 
   <section id="pair" class="screen">
     <div class="center">
       <h1 id="pairTitle">BTCUSDT</h1>
-      <p class="hint">DAY 4 · TAP BACK TO LIST</p>
+      <p class="hint">DAY 5 · TAP BACK TO LIST</p>
     </div>
   </section>
 
   <section id="access" class="screen">
     <div class="center">
       <h1>ACCESS</h1>
-      <p class="hint">DAY 4 · TICKET SCREEN</p>
+      <p class="hint">DAY 5 · TICKET SCREEN</p>
     </div>
   </section>
 
   <script>
     var PAIRS = [
-      { id: "BTCUSDT", px: "97241.20", chg: "+1.24", up: true },
-      { id: "ETHUSDT", px: "3521.80", chg: "-0.62", up: false },
-      { id: "SOLUSDT", px: "178.45", chg: "+3.11", up: true },
-      { id: "BNBUSDT", px: "612.30", chg: "+0.44", up: true },
-      { id: "XRPUSDT", px: "2.184", chg: "-1.08", up: false },
-      { id: "ADAUSDT", px: "0.842", chg: "+0.91", up: true },
-      { id: "DOGEUSDT", px: "0.168", chg: "-2.35", up: false },
-      { id: "AVAXUSDT", px: "38.12", chg: "+1.77", up: true },
-      { id: "LINKUSDT", px: "18.40", chg: "+0.28", up: true },
-      { id: "DOTUSDT", px: "6.21", chg: "-0.54", up: false }
+      { id: "BTCUSDT", px: "97241.20", chg: 1.24 },
+      { id: "ETHUSDT", px: "3521.80", chg: -0.62 },
+      { id: "SOLUSDT", px: "178.45", chg: 3.11 },
+      { id: "BNBUSDT", px: "612.30", chg: 0.44 },
+      { id: "XRPUSDT", px: "2.184", chg: -1.08 },
+      { id: "ADAUSDT", px: "0.842", chg: 0.91 },
+      { id: "DOGEUSDT", px: "0.168", chg: -2.35 },
+      { id: "AVAXUSDT", px: "38.12", chg: 1.77 },
+      { id: "LINKUSDT", px: "18.40", chg: 0.28 },
+      { id: "DOTUSDT", px: "6.21", chg: -0.54 }
     ];
+    var DEFAULT_WATCH = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
+    var watch = [];
 
-    function renderList(filter) {
-      var q = (filter || "").trim().toUpperCase();
-      var root = document.getElementById("list");
-      var html = "";
-      PAIRS.forEach(function (p) {
-        if (q && p.id.indexOf(q) === -1) return;
-        html += '<a class="row" href="#pair">' +
-          '<span>' + p.id + '</span>' +
-          '<span>' + p.px + '</span>' +
-          '<span class="' + (p.up ? "up" : "down") + '">' + p.chg + '%</span></a>';
-      });
-      root.innerHTML = html || '<p class="hint" style="padding:16px;">NO MATCH</p>';
+    function loadWatch() {
+      try { watch = JSON.parse(localStorage.getItem("watch") || "null") || DEFAULT_WATCH.slice(); }
+      catch (e) { watch = DEFAULT_WATCH.slice(); }
+    }
+    function saveWatch() { localStorage.setItem("watch", JSON.stringify(watch)); }
+    function isWatched(id) { return watch.indexOf(id) !== -1; }
+    function toggleWatch(id) {
+      if (isWatched(id)) watch = watch.filter(function (x) { return x !== id; });
+      else watch.push(id);
+      saveWatch();
+      draw();
+    }
+    function findPair(id) {
+      for (var i = 0; i < PAIRS.length; i++) if (PAIRS[i].id === id) return PAIRS[i];
+      return null;
+    }
+    function fmt(n) { return (n > 0 ? "+" : "") + n.toFixed(2) + "%"; }
+    function chgClass(n) { return n >= 0 ? "up" : "down"; }
+
+    function rowHtml(p, withStar) {
+      var star = withStar
+        ? '<button class="star' + (isWatched(p.id) ? " on" : "") + '" data-star="' + p.id + '">' + (isWatched(p.id) ? "★" : "☆") + "</button>"
+        : "";
+      var cols = withStar
+        ? star + "<span>" + p.id + "</span><span>" + p.px + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>"
+        : "<span>" + p.id.replace("USDT", "") + "</span><span class='" + chgClass(p.chg) + "'>" + fmt(p.chg) + "</span>";
+      return '<a class="row" href="#pair/' + p.id + '">' + cols + "</a>";
     }
 
-    function show(name) {
+    function draw() {
+      var q = (document.getElementById("search").value || "").trim().toUpperCase();
+      var watchBox = document.getElementById("watch");
+      if (!watch.length) {
+        watchBox.innerHTML = '<div class="empty">WATCHLIST EMPTY · ADD SYMBOL</div>';
+      } else {
+        watchBox.innerHTML = watch.map(function (id) {
+          var p = findPair(id);
+          return p ? rowHtml(p, true) : "";
+        }).join("");
+      }
+
+      var sorted = PAIRS.slice().sort(function (a, b) { return b.chg - a.chg; });
+      document.getElementById("gainers").innerHTML = sorted.slice(0, 5).map(function (p) { return rowHtml(p, false); }).join("");
+      document.getElementById("losers").innerHTML = sorted.slice(-5).reverse().map(function (p) { return rowHtml(p, false); }).join("");
+
+      document.getElementById("list").innerHTML = PAIRS.filter(function (p) {
+        return !q || p.id.indexOf(q) !== -1;
+      }).map(function (p) { return rowHtml(p, true); }).join("") || '<p class="hint" style="padding:16px;">NO MATCH</p>';
+    }
+
+    function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) {
         el.classList.toggle("active", el.id === name);
       });
@@ -150,19 +240,28 @@
         left.href = "#markets";
         left.textContent = "←";
       }
+      if (pairId) document.getElementById("pairTitle").textContent = pairId;
     }
 
     function route() {
-      var name = (location.hash || "#markets").slice(1);
-      if (name !== "markets" && name !== "pair" && name !== "access") name = "markets";
-      show(name);
+      var hash = location.hash || "#markets";
+      if (hash.indexOf("#pair") === 0) show("pair", hash.split("/")[1] || "BTCUSDT");
+      else if (hash === "#access") show("access");
+      else show("markets");
     }
 
-    window.addEventListener("hashchange", route);
-    document.getElementById("search").addEventListener("input", function () {
-      renderList(this.value);
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-star]");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      toggleWatch(btn.getAttribute("data-star"));
     });
-    renderList("");
+    document.getElementById("search").addEventListener("input", draw);
+
+    loadWatch();
+    draw();
+    window.addEventListener("hashchange", route);
     route();
   </script>
 </body>
