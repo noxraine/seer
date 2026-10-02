@@ -55,31 +55,31 @@
     body.unstable .warn { display: block; }
     .pulse-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 6px; }
     .pulse-head span { font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
-    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #FFB000; animation: pulse 2s ease-in-out infinite; }
-    body.unstable .live-dot { background: #FF4D4D; }
-    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     .log {
+      position: relative;
       margin: 0 16px;
+      height: 224px;
+      overflow: hidden;
       border: 1px solid #2A2A2A;
-      max-height: 248px;
-      overflow: auto;
-      background-image: repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(255,176,0,0.03) 2px, rgba(255,176,0,0.03) 3px);
+      background: #000;
     }
+    body.unstable .log { background: #1a0000; }
+    .live-dot {
+      position: absolute; top: 8px; right: 8px; z-index: 2;
+      width: 6px; height: 6px; border-radius: 50%; background: #FFB000;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    body.unstable .live-dot { background: #FF4D4D; }
+    @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     .log-line {
-      padding: 8px 12px;
-      border-bottom: 1px solid #141414;
-      font-size: 12px;
-      white-space: nowrap;
-      animation: slideIn 0.25s ease-out;
+      position: absolute; left: 0; right: 18px; height: 28px;
+      padding: 0 12px; line-height: 28px; font-size: 12px;
+      color: #FFB000; white-space: nowrap; overflow: hidden;
+      opacity: 0.32;
+      transition: transform 0.45s ease, opacity 0.45s ease;
     }
-    .log-line .t { color: #5A5A5A; }
-    .log-line .k { color: #FFB000; }
-    .log-line .v { color: #FFE7A3; }
-    .log-line.evt .k, .log-line.evt .v { color: #FF4D4D; }
-    .log-line.ok .k { color: #3DDC84; }
-    .log-line:nth-child(n+5) { opacity: 0.55; }
-    .log-line:nth-child(n+7) { opacity: 0.28; }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .log-line.bright { opacity: 1; color: #FFE7A3; }
+    .log-line.bad.bright { color: #FF8A8A; }
     .live { margin-top: 8px; font-size: 11px; letter-spacing: 0.12em; color: #8A7000; }
     .live.bad { color: #FF4D4D; }
     .access { padding: 28px 16px 0; }
@@ -116,8 +116,8 @@
       <div class="live" id="pairLive">LIVE · OFF</div>
       <div class="stamp" id="pairStamp">NORMAL</div>
       <div class="warn">UNSTABLE · DO NOT ADD RISK</div>
-      <div class="pulse-head"><i class="live-dot"></i><span>MARKET PULSE</span></div>
-      <div class="log" id="pairLog"></div>
+      <div class="pulse-head"><span>MARKET PULSE</span></div>
+      <div class="log" id="pairLog"><i class="live-dot"></i></div>
     </div>
   </section>
 
@@ -133,15 +133,14 @@
 
   <script>
     var ALIAS = { BTC:"BTCUSDT", BITCOIN:"BTCUSDT", ETH:"ETHUSDT", ETHEREUM:"ETHUSDT", SOL:"SOLUSDT", SOLANA:"SOLUSDT" };
-    var DAY = 86400000, MIN8 = 8 * 60000;
+    var DAY = 86400000, MIN8 = 8 * 60000, ROW = 28;
     var CATALOG = [], bars = [], tape = [];
     var busy = false, sock = null, poll = null, openId = "", lastBeat = 0;
     var tapeTimer = null, barTimer = null, watchDog = null;
-    var regime = { name: "NORMAL", since: 0 }, prevName = "", lastTapeAt = 0, tapeHold = false, staleOn = false, beat = 0;
+    var regime = { name: "NORMAL", since: 0 }, prevName = "", tapeHold = false, staleOn = false, beat = 0, uid = 1;
 
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
-    function hhmmss(ts) { var d = new Date(ts || Date.now()); return hhmm(ts) + ":" + pad(d.getSeconds()); }
     function onlineNow() { return navigator.onLine !== false; }
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function setLive(t, bad) {
@@ -157,6 +156,7 @@
       if (n >= 1) return n.toFixed(3);
       return n.toFixed(5);
     }
+    function clip(s) { return s.length > 48 ? s.slice(0, 48) : s; }
     function median(a) {
       var b = a.slice().sort(function (x, y) { return x - y; });
       return b.length ? b[Math.floor(b.length / 2)] : 0;
@@ -225,51 +225,70 @@
       document.getElementById("pairPrice").textContent = p.px;
       document.getElementById("pairMove").innerHTML = '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
     }
-    function line(kind, text, cls) {
-      return { kind: kind, html: text, cls: cls || "" };
+    function volPhrase(q) {
+      if (q >= 3) return "volume abnormal · " + q.toFixed(1) + "x";
+      if (q >= 1.4) return "volume above normal · " + q.toFixed(1) + "x";
+      return "volume normal · " + q.toFixed(1) + "x";
+    }
+    function phrase(sym, m) {
+      var hold = Math.max(1, Math.round((Date.now() - regime.since) / 60000));
+      var lines = [
+        sym + " · quiet · range " + m.atr.toPrecision(2) + " pts",
+        sym + " · " + volPhrase(m.Q),
+        sym + " · minute " + m.R.toFixed(1) + "x wider",
+        sym + " · 5-min shift " + m.roc.toFixed(1) + "x",
+        sym + " · " + m.S + " of 3 shock signs",
+        m.S === 0 ? sym + " · checking · no shock" : sym + " · " + m.S + " of 3 shock signs",
+        sym + " · calm for " + hold + " min"
+      ];
+      return clip(lines[beat % lines.length]);
     }
     function renderTape() {
       var box = document.getElementById("pairLog");
-      var view = tape.slice(-8);
-      box.innerHTML = view.map(function (row) { return '<div class="log-line ' + row.cls + '">' + row.html + "</div>"; }).join("");
-      if (!tapeHold) box.scrollTop = box.scrollHeight;
+      var dot = box.querySelector(".live-dot");
+      var seen = {};
+      box.querySelectorAll(".log-line").forEach(function (el) { seen[el.getAttribute("data-id")] = el; });
+      tape.forEach(function (row, i) {
+        var el = seen[row.id];
+        if (!el) {
+          el = document.createElement("div");
+          el.className = "log-line";
+          el.setAttribute("data-id", row.id);
+          el.textContent = row.text;
+          el.style.transform = "translateY(-28px)";
+          el.style.opacity = "0";
+          box.appendChild(el);
+          requestAnimationFrame(function () {
+            el.style.transform = "translateY(" + (i * ROW) + "px)";
+            el.style.opacity = i === 0 ? "1" : "0.32";
+          });
+        } else {
+          el.style.transform = "translateY(" + (i * ROW) + "px)";
+          el.style.opacity = i === 0 ? "1" : "0.32";
+        }
+        el.className = "log-line" + (i === 0 ? " bright" : "") + (row.bad ? " bad" : "");
+        delete seen[row.id];
+      });
+      Object.keys(seen).forEach(function (id) { seen[id].remove(); });
+      if (dot) box.appendChild(dot);
     }
-    function pushTape(row, force) {
-      var now = Date.now();
-      if (!force && now - lastTapeAt < 5000) return;
-      lastTapeAt = now;
-      tape.push(row);
-      if (tape.length > 20) tape = tape.slice(-20);
+    function pushTape(text, bad) {
+      if (tapeHold) return;
+      tape.unshift({ id: String(uid++), text: text, bad: !!bad });
+      if (tape.length > 12) tape = tape.slice(0, 12);
       renderTape();
-    }
-    function fact(m, sym) {
-      var t = '<span class="t">' + hhmmss() + "</span> ";
-      var hold = Math.max(1, Math.round((Date.now() - regime.since) / 60000));
-      var snaps = [
-        t + '<span class="k">' + sym + "</span> <span class=\"v\">" + regime.name + "</span> <span class=\"k\">ATR</span> <span class=\"v\">" + m.atr.toPrecision(3) + "</span>",
-        t + '<span class="k">VOL</span> <span class="v">Q=' + m.Q.toFixed(1) + "</span>",
-        t + '<span class="k">RANGE</span> <span class="v">' + m.R.toFixed(2) + "</span> <span class=\"k\">ATR</span>",
-        t + '<span class="k">ROC5</span> <span class="v">' + m.roc.toFixed(2) + "</span>",
-        t + '<span class="k">HOLD</span> <span class="v">' + hold + "m</span> <span class=\"k\">" + regime.name + "</span>"
-      ];
-      return snaps[beat % snaps.length];
     }
     function seedTape(list, sym) {
       tape = [];
-      var idx = [28, 36, 44, 52, list.length - 1];
-      for (var i = 0; i < idx.length; i++) {
+      var idx = [30, 38, 46, 54, list.length - 1];
+      for (var i = idx.length - 1; i >= 0; i--) {
         var n = Math.min(list.length - 1, idx[i]);
         var m = metrics(list, n);
-        tape.push(line("hist", '<span class="t">' + hhmmss(list[n].t) + '</span> <span class="k">S</span> <span class="v">' + m.S + '</span> <span class="k">Q</span> <span class="v">' + m.Q.toFixed(1) + "</span>"));
+        tape.unshift({ id: String(uid++), text: clip(sym + " · " + m.S + " of 3 shock signs"), bad: m.S >= 2 });
       }
-      tape.push(line("evt", '<span class="t">' + hhmmss(regime.since) + '</span> <span class="k">' + regime.name + "</span>", regime.name === "UNSTABLE" ? "evt" : "ok"));
+      tape.unshift({ id: String(uid++), text: clip(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet now")), bad: regime.name === "UNSTABLE" });
+      tape = tape.slice(0, 12);
       renderTape();
-    }
-    function onRegime(sym) {
-      if (prevName && prevName !== regime.name) {
-        pushTape(line("evt", '<span class="t">' + hhmmss() + '</span> <span class="k">' + sym + " " + regime.name + "</span> <span class=\"v\">SINCE " + hhmm(regime.since) + "</span>", regime.name === "UNSTABLE" ? "evt" : "ok"), true);
-      }
-      prevName = regime.name;
     }
     function loadBars(id) {
       fetch("https://data-api.binance.vision/api/v3/klines?symbol=" + id + "&interval=1m&limit=60")
@@ -279,12 +298,14 @@
           var next = rows.map(function (k) { return { t: k[0], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }; });
           var first = !bars.length;
           bars = next;
-          regime = replay(bars);
+          var nextRegime = replay(bars);
+          var flipped = prevName && prevName !== nextRegime.name;
+          regime = nextRegime;
           paintRegime();
-          if (first) seedTape(bars, id.replace("USDT", ""));
-          onRegime(id.replace("USDT", ""));
-          var m = metrics(bars, bars.length - 1);
-          if (m.Q > 2 || m.R > 1.5) pushTape(line("hot", '<span class="t">' + hhmmss() + '</span> <span class="k">WATCH</span> <span class="v">Q=' + m.Q.toFixed(1) + " R=" + m.R.toFixed(2) + "</span>"), false);
+          var sym = id.replace("USDT", "");
+          if (first) seedTape(bars, sym);
+          if (flipped) pushTape(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet again"), regime.name === "UNSTABLE");
+          prevName = regime.name;
         })
         .catch(function () { if (openId === id) { staleOn = true; paintRegime(); } });
     }
@@ -314,6 +335,7 @@
     function startLive(id) {
       stopLive();
       openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
+      document.getElementById("pairLog").innerHTML = '<i class="live-dot"></i>';
       paintPair(findPair(id));
       regime = { name: "NORMAL", since: Date.now() };
       paintRegime();
@@ -323,11 +345,11 @@
       loadBars(id);
       barTimer = setInterval(function () { if (openId === id) loadBars(id); }, 8000);
       tapeTimer = setInterval(function () {
-        if (openId !== id || !bars.length || staleOn) return;
+        if (openId !== id || !bars.length || staleOn || tapeHold) return;
         var m = metrics(bars, bars.length - 1);
-        pushTape(line("beat", fact(m, id.replace("USDT", ""))), false);
+        pushTape(phrase(id.replace("USDT", ""), m), m.S >= 2);
         beat++;
-      }, 12000);
+      }, 2500);
       try { sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker"); }
       catch (e) { restOne(id); poll = setInterval(function () { if (openId === id) restOne(id); }, 3000); return; }
       sock.onmessage = function (ev) {
