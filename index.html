@@ -28,7 +28,6 @@
     .screen { display: none; padding-bottom: 28px; }
     .screen.active { display: block; }
     .label { padding: 16px 16px 6px; font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
-    .empty { margin: 8px 16px 0; padding: 14px; border: 1px dashed #2A2A2A; color: #8A7000; font-size: 12px; }
     .search-wrap { padding: 8px 16px 4px; }
     .search {
       width: 100%; height: 40px; background: #0a0a0a; border: 1px solid #2A2A2A;
@@ -54,8 +53,33 @@
     .stamp.stale { border-color: #FF4D4D; color: #FF4D4D; }
     .warn { margin-top: 10px; font-size: 13px; letter-spacing: 0.08em; color: #FF4D4D; display: none; }
     body.unstable .warn { display: block; }
-    .log { margin: 18px 0 0; border: 1px solid #2A2A2A; max-height: 280px; overflow: auto; }
-    .log-line { padding: 8px 12px; border-bottom: 1px solid #1a1a1a; font-size: 12px; color: #C49A00; }
+    .pulse-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 6px; }
+    .pulse-head span { font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #FFB000; animation: pulse 2s ease-in-out infinite; }
+    body.unstable .live-dot { background: #FF4D4D; }
+    @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .log {
+      margin: 0 16px;
+      border: 1px solid #2A2A2A;
+      max-height: 248px;
+      overflow: auto;
+      background-image: repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(255,176,0,0.03) 2px, rgba(255,176,0,0.03) 3px);
+    }
+    .log-line {
+      padding: 8px 12px;
+      border-bottom: 1px solid #141414;
+      font-size: 12px;
+      white-space: nowrap;
+      animation: slideIn 0.25s ease-out;
+    }
+    .log-line .t { color: #5A5A5A; }
+    .log-line .k { color: #FFB000; }
+    .log-line .v { color: #FFE7A3; }
+    .log-line.evt .k, .log-line.evt .v { color: #FF4D4D; }
+    .log-line.ok .k { color: #3DDC84; }
+    .log-line:nth-child(n+5) { opacity: 0.55; }
+    .log-line:nth-child(n+7) { opacity: 0.28; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .live { margin-top: 8px; font-size: 11px; letter-spacing: 0.12em; color: #8A7000; }
     .live.bad { color: #FF4D4D; }
     .access { padding: 28px 16px 0; }
@@ -91,8 +115,8 @@
       <div class="pair-move" id="pairMove"></div>
       <div class="live" id="pairLive">LIVE · OFF</div>
       <div class="stamp" id="pairStamp">NORMAL</div>
-      <div class="warn" id="pairWarn">UNSTABLE · DO NOT ADD RISK</div>
-      <div class="label">TAPE</div>
+      <div class="warn">UNSTABLE · DO NOT ADD RISK</div>
+      <div class="pulse-head"><i class="live-dot"></i><span>MARKET PULSE</span></div>
       <div class="log" id="pairLog"></div>
     </div>
   </section>
@@ -103,7 +127,7 @@
       <div class="access-days" id="daysLeft">30</div>
       <div id="daysLabel">DAYS LEFT</div>
       <button class="btn" id="extendBtn" type="button">EXTEND 30D</button>
-      <p class="legal">Not investment advice. Regime is a description of range and volume versus the last hour. It is not a signal to buy or sell.</p>
+      <p class="legal">Not investment advice. Regime describes range and volume versus the last hour. It is not a signal to buy or sell.</p>
     </div>
   </section>
 
@@ -111,9 +135,9 @@
     var ALIAS = { BTC:"BTCUSDT", BITCOIN:"BTCUSDT", ETH:"ETHUSDT", ETHEREUM:"ETHUSDT", SOL:"SOLUSDT", SOLANA:"SOLUSDT" };
     var DAY = 86400000, MIN8 = 8 * 60000;
     var CATALOG = [], bars = [], tape = [];
-    var busy = false, sock = null, poll = null, openId = "", lastBeat = 0, tapeTimer = null, barTimer = null, watchDog = null;
-    var regime = { name: "NORMAL", since: 0 };
-    var staleOn = false, tapeStep = 0;
+    var busy = false, sock = null, poll = null, openId = "", lastBeat = 0;
+    var tapeTimer = null, barTimer = null, watchDog = null;
+    var regime = { name: "NORMAL", since: 0 }, prevName = "", lastTapeAt = 0, tapeHold = false, staleOn = false, beat = 0;
 
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
@@ -122,8 +146,7 @@
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function setLive(t, bad) {
       var el = document.getElementById("pairLive");
-      el.textContent = t;
-      el.className = bad ? "live bad" : "live";
+      el.textContent = t; el.className = bad ? "live bad" : "live";
     }
     function fmt(n) { return (n > 0 ? "+" : "") + Number(n).toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
@@ -134,7 +157,6 @@
       if (n >= 1) return n.toFixed(3);
       return n.toFixed(5);
     }
-    function mean(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return a.length ? s / a.length : 0; }
     function median(a) {
       var b = a.slice().sort(function (x, y) { return x - y; });
       return b.length ? b[Math.floor(b.length / 2)] : 0;
@@ -150,30 +172,24 @@
     }
     function metrics(list, end) {
       var atr = atr14(list, end);
-      if (!atr || end < 20) return { S: 0, R: 0, roc: 0, Q: 1, atr: atr };
+      if (!atr || end < 20) return { S: 0, R: 0, roc: 0, Q: 1, atr: 0 };
       var R = (list[end].h - list[end].l) / atr;
       var roc = Math.abs(list[end].c - list[end - 5].c) / atr;
       var vols = [];
       for (var i = end - 20; i < end; i++) vols.push(list[i].v);
       var med = median(vols);
       var Q = med ? list[end].v / med : 1;
-      var S = (R > 2.2 ? 1 : 0) + (roc > 1.8 ? 1 : 0) + (Q > 3 ? 1 : 0);
-      return { S: S, R: R, roc: roc, Q: Q, atr: atr };
+      return { S: (R > 2.2 ? 1 : 0) + (roc > 1.8 ? 1 : 0) + (Q > 3 ? 1 : 0), R: R, roc: roc, Q: Q, atr: atr };
     }
     function replay(list) {
       var state = "NORMAL", since = list[20] ? list[20].t : Date.now(), lastFlip = 0, calm = 0, prevS = 0;
       for (var i = 21; i < list.length; i++) {
-        var m = metrics(list, i);
-        var t = list[i].t;
+        var m = metrics(list, i), t = list[i].t;
         if (state === "NORMAL") {
-          if (m.S >= 2 && prevS >= 2 && (t - lastFlip) >= MIN8) {
-            state = "UNSTABLE"; since = t; lastFlip = t; calm = 0;
-          }
+          if (m.S >= 2 && prevS >= 2 && (t - lastFlip) >= MIN8) { state = "UNSTABLE"; since = t; lastFlip = t; calm = 0; }
         } else {
           calm = (m.S === 0 && m.R < 0.8 && m.Q < 1.5) ? calm + 1 : 0;
-          if (calm >= 10 && (t - since) >= MIN8) {
-            state = "NORMAL"; since = t; lastFlip = t; calm = 0;
-          }
+          if (calm >= 10 && (t - since) >= MIN8) { state = "NORMAL"; since = t; lastFlip = t; calm = 0; }
         }
         prevS = m.S;
       }
@@ -182,11 +198,7 @@
     function paintRegime() {
       var el = document.getElementById("pairStamp");
       document.body.classList.toggle("unstable", regime.name === "UNSTABLE" && !staleOn);
-      if (staleOn) {
-        el.textContent = "STALE · NO LIVE DATA";
-        el.className = "stamp stale";
-        return;
-      }
+      if (staleOn) { el.textContent = "STALE · NO LIVE DATA"; el.className = "stamp stale"; return; }
       el.textContent = regime.name + " · SINCE " + hhmm(regime.since);
       el.className = "stamp " + regime.name.toLowerCase();
     }
@@ -203,8 +215,7 @@
       var ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
       document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(rowHtml).join("");
       document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(rowHtml).join("");
-      var rows = q
-        ? CATALOG.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }).slice(0, 40)
+      var rows = q ? CATALOG.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }).slice(0, 40)
         : CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
       document.getElementById("listLabel").textContent = q ? "SEARCH" : "MARKETS · TOP VOL";
       document.getElementById("list").innerHTML = rows.map(rowHtml).join("") || '<p class="label">NO MATCH</p>';
@@ -212,25 +223,53 @@
     function paintPair(p) {
       document.getElementById("pairTitle").textContent = p.id;
       document.getElementById("pairPrice").textContent = p.px;
-      document.getElementById("pairMove").innerHTML =
-        '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
+      document.getElementById("pairMove").innerHTML = '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
     }
-    function pushTape(line) {
-      tape.push(line);
-      if (tape.length > 18) tape = tape.slice(-18);
+    function line(kind, text, cls) {
+      return { kind: kind, html: text, cls: cls || "" };
+    }
+    function renderTape() {
       var box = document.getElementById("pairLog");
-      box.innerHTML = tape.map(function (l) { return '<div class="log-line">' + l + "</div>"; }).join("");
-      box.scrollTop = box.scrollHeight;
+      var view = tape.slice(-8);
+      box.innerHTML = view.map(function (row) { return '<div class="log-line ' + row.cls + '">' + row.html + "</div>"; }).join("");
+      if (!tapeHold) box.scrollTop = box.scrollHeight;
     }
-    function seedTape(list) {
+    function pushTape(row, force) {
+      var now = Date.now();
+      if (!force && now - lastTapeAt < 5000) return;
+      lastTapeAt = now;
+      tape.push(row);
+      if (tape.length > 20) tape = tape.slice(-20);
+      renderTape();
+    }
+    function fact(m, sym) {
+      var t = '<span class="t">' + hhmmss() + "</span> ";
+      var hold = Math.max(1, Math.round((Date.now() - regime.since) / 60000));
+      var snaps = [
+        t + '<span class="k">' + sym + "</span> <span class=\"v\">" + regime.name + "</span> <span class=\"k\">ATR</span> <span class=\"v\">" + m.atr.toPrecision(3) + "</span>",
+        t + '<span class="k">VOL</span> <span class="v">Q=' + m.Q.toFixed(1) + "</span>",
+        t + '<span class="k">RANGE</span> <span class="v">' + m.R.toFixed(2) + "</span> <span class=\"k\">ATR</span>",
+        t + '<span class="k">ROC5</span> <span class="v">' + m.roc.toFixed(2) + "</span>",
+        t + '<span class="k">HOLD</span> <span class="v">' + hold + "m</span> <span class=\"k\">" + regime.name + "</span>"
+      ];
+      return snaps[beat % snaps.length];
+    }
+    function seedTape(list, sym) {
       tape = [];
-      var idx = [25, 32, 40, 48, 55, list.length - 1];
+      var idx = [28, 36, 44, 52, list.length - 1];
       for (var i = 0; i < idx.length; i++) {
         var n = Math.min(list.length - 1, idx[i]);
         var m = metrics(list, n);
-        tape.push(hhmmss(list[n].t) + "  S=" + m.S + "  RANGE/ATR " + m.R.toFixed(2) + "  VOL Q=" + m.Q.toFixed(1));
+        tape.push(line("hist", '<span class="t">' + hhmmss(list[n].t) + '</span> <span class="k">S</span> <span class="v">' + m.S + '</span> <span class="k">Q</span> <span class="v">' + m.Q.toFixed(1) + "</span>"));
       }
-      pushTape(hhmmss(regime.since) + "  REGIME " + regime.name);
+      tape.push(line("evt", '<span class="t">' + hhmmss(regime.since) + '</span> <span class="k">' + regime.name + "</span>", regime.name === "UNSTABLE" ? "evt" : "ok"));
+      renderTape();
+    }
+    function onRegime(sym) {
+      if (prevName && prevName !== regime.name) {
+        pushTape(line("evt", '<span class="t">' + hhmmss() + '</span> <span class="k">' + sym + " " + regime.name + "</span> <span class=\"v\">SINCE " + hhmm(regime.since) + "</span>", regime.name === "UNSTABLE" ? "evt" : "ok"), true);
+      }
+      prevName = regime.name;
     }
     function loadBars(id) {
       fetch("https://data-api.binance.vision/api/v3/klines?symbol=" + id + "&interval=1m&limit=60")
@@ -242,7 +281,10 @@
           bars = next;
           regime = replay(bars);
           paintRegime();
-          if (first) seedTape(bars);
+          if (first) seedTape(bars, id.replace("USDT", ""));
+          onRegime(id.replace("USDT", ""));
+          var m = metrics(bars, bars.length - 1);
+          if (m.Q > 2 || m.R > 1.5) pushTape(line("hot", '<span class="t">' + hhmmss() + '</span> <span class="k">WATCH</span> <span class="v">Q=' + m.Q.toFixed(1) + " R=" + m.R.toFixed(2) + "</span>"), false);
         })
         .catch(function () { if (openId === id) { staleOn = true; paintRegime(); } });
     }
@@ -257,12 +299,7 @@
       document.body.classList.remove("unstable");
     }
     function markStale() { staleOn = true; setLive("STALE · NO LIVE DATA", true); paintRegime(); }
-    function markLive(how, id) {
-      staleOn = false;
-      setLive("LIVE · " + how + " " + id, false);
-      lastBeat = Date.now();
-      paintRegime();
-    }
+    function markLive(how, id) { staleOn = false; setLive("LIVE · " + how + " " + id, false); lastBeat = Date.now(); paintRegime(); }
     function restOne(id) {
       if (!onlineNow()) return markStale();
       fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id)
@@ -270,17 +307,13 @@
         .then(function (row) {
           if (openId !== id) return;
           var p = findPair(id);
-          p.px = nicePx(row.lastPrice);
-          p.chg = Number(row.priceChangePercent) || 0;
-          paintPair(p);
-          markLive("REST", id);
-        })
-        .catch(function () { if (openId === id) markStale(); });
+          p.px = nicePx(row.lastPrice); p.chg = Number(row.priceChangePercent) || 0;
+          paintPair(p); markLive("REST", id);
+        }).catch(function () { if (openId === id) markStale(); });
     }
     function startLive(id) {
       stopLive();
-      openId = id;
-      bars = []; tape = []; staleOn = false;
+      openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
       paintPair(findPair(id));
       regime = { name: "NORMAL", since: Date.now() };
       paintRegime();
@@ -292,29 +325,15 @@
       tapeTimer = setInterval(function () {
         if (openId !== id || !bars.length || staleOn) return;
         var m = metrics(bars, bars.length - 1);
-        var kinds = [
-          "RANGE/ATR " + m.R.toFixed(2),
-          "VOL Q=" + m.Q.toFixed(1),
-          "ROC5/ATR " + m.roc.toFixed(2),
-          "S=" + m.S + "  HOLD " + regime.name
-        ];
-        pushTape(hhmmss() + "  " + kinds[tapeStep % 4]);
-        tapeStep++;
-      }, 10000);
-      try {
-        sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker");
-      } catch (e) {
-        restOne(id);
-        poll = setInterval(function () { if (openId === id) restOne(id); }, 3000);
-        return;
-      }
+        pushTape(line("beat", fact(m, id.replace("USDT", ""))), false);
+        beat++;
+      }, 12000);
+      try { sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker"); }
+      catch (e) { restOne(id); poll = setInterval(function () { if (openId === id) restOne(id); }, 3000); return; }
       sock.onmessage = function (ev) {
         if (openId !== id) return;
-        var msg = JSON.parse(ev.data);
-        var p = findPair(id);
-        p.px = nicePx(msg.c);
-        paintPair(p);
-        markLive("SOCKET", id);
+        var msg = JSON.parse(ev.data), p = findPair(id);
+        p.px = nicePx(msg.c); paintPair(p); markLive("SOCKET", id);
       };
       sock.onerror = function () {};
       sock.onclose = function () {
@@ -328,7 +347,7 @@
       }, 2000);
     }
     function isSpot(sym) {
-      return sym && sym.slice(-4) === "USDT" && sym.indexOf("UP") === -1 && sym.indexOf("DOWN") === -1 && sym.indexOf("BULL") === -1 && sym.indexOf("BEAR") === -1;
+      return sym && sym.slice(-4) === "USDT" && sym.indexOf("UP") < 0 && sym.indexOf("DOWN") < 0 && sym.indexOf("BULL") < 0 && sym.indexOf("BEAR") < 0;
     }
     function loadPrices() {
       if (busy || !onlineNow()) { if (!onlineNow()) setFeed("FEED DELAYED"); return; }
@@ -343,9 +362,7 @@
           }
           setFeed("FEED · " + CATALOG.length + " USDT");
           draw();
-        })
-        .catch(function () { setFeed("FEED DELAYED"); })
-        .then(function () { busy = false; });
+        }).catch(function () { setFeed("FEED DELAYED"); }).then(function () { busy = false; });
     }
     function drawAccess() {
       var n = parseInt(localStorage.getItem("accessUntil") || "0", 10);
@@ -357,14 +374,8 @@
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
       var left = document.getElementById("leftBtn");
-      if (name === "markets") {
-        left.href = "#access";
-        left.innerHTML = '<span class="dot"></span>TRIAL';
-        stopLive();
-      } else {
-        left.href = "#markets";
-        left.textContent = "←";
-      }
+      if (name === "markets") { left.href = "#access"; left.innerHTML = '<span class="dot"></span>TRIAL'; stopLive(); }
+      else { left.href = "#markets"; left.textContent = "←"; }
       if (name === "pair") startLive(pairId || "BTCUSDT");
       if (name === "access") { stopLive(); drawAccess(); }
     }
@@ -374,6 +385,9 @@
       else if (hash === "#access") show("access");
       else show("markets");
     }
+    var logEl = document.getElementById("pairLog");
+    logEl.addEventListener("touchstart", function () { tapeHold = true; });
+    logEl.addEventListener("touchend", function () { setTimeout(function () { tapeHold = false; }, 4000); });
     document.getElementById("search").addEventListener("input", draw);
     document.getElementById("extendBtn").addEventListener("click", function () {
       var n = parseInt(localStorage.getItem("accessUntil") || "0", 10) || Date.now();
