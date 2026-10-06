@@ -7,9 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #000; color: #FFB000; font-family: ui-monospace, monospace; min-height: 100vh; }
-    body.unstable { background: #1a0000; color: #ffb4b4; }
     .topbar { position: sticky; top: 0; z-index: 10; height: 56px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2A2A2A; background: #000; }
-    body.unstable .topbar { background: #1a0000; border-bottom-color: #5a2020; }
     .left, .help { min-height: 44px; display: flex; align-items: center; color: #FFB000; text-decoration: none; letter-spacing: 0.08em; font-size: 14px; }
     .left { gap: 8px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #FFB000; }
@@ -28,17 +26,14 @@
     .pair-sym { font-size: 12px; letter-spacing: 0.16em; color: #8A7000; }
     .pair-price { margin-top: 8px; font-size: 42px; line-height: 1; }
     .pair-move { margin-top: 10px; display: flex; gap: 8px; font-size: 16px; }
-    .stamp { margin-top: 18px; padding: 14px 12px; border: 1px solid #FFB000; letter-spacing: 0.12em; font-size: 16px; }
-    .stamp.normal { border-color: #3DDC84; color: #3DDC84; }
-    .stamp.unstable { border-color: #FF4D4D; color: #FF4D4D; background: #2a0000; }
+    .stamp { margin-top: 18px; padding: 14px 12px; border: 1px solid #3DDC84; letter-spacing: 0.12em; font-size: 16px; color: #3DDC84; background: transparent; }
+    .stamp.unstable { border: 0; background: #ff3b30; color: #fff; font-weight: 700; }
     .stamp.stale { border-color: #FF4D4D; color: #FF4D4D; }
-    .warn { margin-top: 10px; font-size: 13px; letter-spacing: 0.08em; color: #FF4D4D; display: none; }
-    body.unstable .warn { display: block; }
+    .warn { margin-top: 10px; font-size: 13px; letter-spacing: 0.08em; color: #fff; display: none; }
+    .warn.on { display: block; }
     .pulse-head { padding: 16px 16px 6px; font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
     .log { position: relative; margin: 0 16px; height: 224px; overflow: hidden; border: 1px solid #2A2A2A; background: #000; }
-    body.unstable .log { background: #1a0000; }
-    .live-dot { position: absolute; top: 8px; right: 8px; z-index: 2; width: 6px; height: 6px; border-radius: 50%; background: #FFB000; animation: pulse 2s ease-in-out infinite; }
-    body.unstable .live-dot { background: #FF4D4D; }
+    .live-dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: #FFB000; animation: pulse 2s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     .log-line { position: absolute; left: 0; right: 18px; height: 28px; padding: 0 12px; line-height: 28px; font-size: 12px; color: #FFB000; white-space: nowrap; overflow: hidden; opacity: 0.32; transition: transform 0.45s ease, opacity 0.45s ease; }
     .log-line.bright { opacity: 1; color: #FFE7A3; }
@@ -51,38 +46,49 @@
     .btn { display: block; width: 100%; margin-top: 24px; height: 48px; border: 1px solid #FFB000; background: #FFB000; color: #000; font: inherit; letter-spacing: 0.14em; }
     .legal { margin-top: 24px; font-size: 10px; line-height: 1.5; color: #6a5500; }
     #intro { position: fixed; inset: 0; z-index: 40; background: #000; display: flex; justify-content: center; }
-    #intro.hide { opacity: 0; pointer-events: none; }
     .intro-col { width: 100%; max-width: 420px; min-height: 100%; padding: 10vh 24px 12vh; display: flex; flex-direction: column; }
     .slogans { position: relative; height: 84px; margin-bottom: 28px; }
-    .phrase { position: absolute; inset: 0; text-align: center; font-size: 28px; font-weight: 600; line-height: 1.25; letter-spacing: 0.04em; color: #ffe7b0; text-shadow: 0 1px 0 #000; transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1), transform 420ms cubic-bezier(0.22, 1, 0.36, 1), filter 420ms cubic-bezier(0.22, 1, 0.36, 1); }
-    .phrase.off { opacity: 0; transform: translateY(-6px); filter: blur(4px); }
-    .phrase.on { opacity: 1; transform: none; filter: none; }
-    .phrase.enter { opacity: 0; transform: translateY(8px); filter: blur(6px); transition-duration: 560ms; transition-delay: 80ms; }
-    .phrase span { display: inline-block; opacity: 0; transform: translateY(8px); filter: blur(6px); }
-    .phrase.on span { animation: word 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    @keyframes word { to { opacity: 1; transform: none; filter: none; } }
-    .chart-wrap { height: 42vh; background: #000; transition: background-color 640ms cubic-bezier(0.4, 0, 0.2, 1); }
-    .chart-wrap.hot { background: #ff3b30; transition: background-color 280ms linear; }
+    .phrase { position: absolute; inset: 0; text-align: center; font-size: 28px; font-weight: 600; line-height: 1.25; letter-spacing: 0.04em; color: #ffe7b0; text-shadow: 0 1px 0 #000; }
+    .chart-wrap { height: 42vh; background: #000; transition: background-color 280ms linear; }
+    .chart-wrap.hot { background: #ff3b30; }
     #chart { width: 100%; height: 100%; display: block; }
-    .badge { margin-top: 20px; min-height: 64px; text-align: center; background: transparent; padding: 12px 8px; }
+    .badge { margin-top: 20px; min-height: 64px; text-align: center; }
     .mode { font-size: 18px; font-weight: 700; letter-spacing: 0.12em; color: #e0a040; }
     .mode.shock { color: #ff3b30; }
-    .mode.leave { animation: up 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .mode.come { animation: down 560ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-    @keyframes up { to { opacity: 0; transform: translateY(-6px); filter: blur(4px); } }
-    @keyframes down { from { opacity: 0; transform: translateY(8px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
     .risk { margin-top: 6px; font-size: 13px; color: #fff; min-height: 18px; animation: blink 1.6s ease-in-out infinite; }
     @keyframes blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
     .intro-btn { margin-top: 20px; height: 48px; background: #e0a040; color: #000; border: 0; font: inherit; letter-spacing: 0.14em; }
+    #tour { display: none; position: fixed; inset: 0; z-index: 60; }
+    .tour-hole { position: absolute; background: transparent; box-shadow: 0 0 0 9999px rgba(0,0,0,0.78); border: 1px solid #ffaa00; pointer-events: none; }
+    .tour-tip { position: absolute; left: 16px; right: 16px; bottom: 16px; background: #111; border: 1px solid #ffaa00; padding: 20px; }
+    .tour-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .tour-k { font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: 0.12em; color: #3DDC84; }
+    .tour-n { font-family: ui-monospace, monospace; font-size: 12px; color: #8A7000; }
+    .tour-t { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; line-height: 1.5; color: rgba(255,255,255,0.92); margin-bottom: 12px; }
+    .tour-t b { color: #fff; }
+    .tour-line { border: 0; border-top: 1px solid #333; margin: 0 0 12px; }
+    .tour-row { display: flex; gap: 12px; }
+    .tour-row button { height: 44px; flex: 1; font: inherit; letter-spacing: 0.12em; }
+    #tourSkip { background: transparent; color: #8A7000; border: 0; }
+    #tourNext { background: #ffaa00; color: #000; border: 0; }
   </style>
 </head>
 <body>
   <div id="intro">
     <div class="intro-col">
-      <div class="slogans"><div class="phrase on" id="phrase"></div></div>
+      <div class="slogans"><div class="phrase" id="phrase">YOUR PLAN BREAKS IN THE SHOCK</div></div>
       <div class="chart-wrap" id="chartWrap"><canvas id="chart"></canvas></div>
-      <div class="badge" id="badge"><div class="mode" id="mode">NORMAL</div><div class="risk" id="risk">Trade your plan when normal</div></div>
+      <div class="badge"><div class="mode" id="mode">NORMAL</div><div class="risk" id="risk">Trade your plan when normal</div></div>
       <button class="intro-btn" id="introBtn" type="button">TRY ON BTC</button>
+    </div>
+  </div>
+  <div id="tour">
+    <div class="tour-hole" id="tourHole"></div>
+    <div class="tour-tip">
+      <div class="tour-top"><div class="tour-k" id="tourK"></div><div class="tour-n" id="tourN"></div></div>
+      <div class="tour-t" id="tourT"></div>
+      <hr class="tour-line">
+      <div class="tour-row"><button type="button" id="tourSkip">SKIP</button><button type="button" id="tourNext">NEXT →</button></div>
     </div>
   </div>
   <header class="topbar">
@@ -106,7 +112,7 @@
       <div class="pair-move" id="pairMove"></div>
       <div class="live" id="pairLive">LIVE · OFF</div>
       <div class="stamp" id="pairStamp">NORMAL</div>
-      <div class="warn">UNSTABLE · DO NOT ADD RISK</div>
+      <div class="warn" id="pairWarn">Unstable do not add risk</div>
       <div class="pulse-head">MARKET PULSE</div>
       <div class="log" id="pairLog"><i class="live-dot"></i></div>
     </div>
@@ -123,18 +129,29 @@
   <script>
     var ALIAS = { BTC:"BTCUSDT", BITCOIN:"BTCUSDT", ETH:"ETHUSDT", ETHEREUM:"ETHUSDT", SOL:"SOLUSDT", SOLANA:"SOLUSDT" };
     var DAY = 86400000, MIN8 = 8 * 60000, ROW = 28;
-    var CATALOG = [], bars = [], tape = [];
-    var busy = false, sock = null, poll = null, openId = "", lastBeat = 0;
+    var CATALOG = [], bars = [], tape = [], step = 0;
+    var busy = false, sock = null, poll = null, openId = "", lastBeat = 0, btcPx = "—", btcChg = 0;
     var tapeTimer = null, barTimer = null, watchDog = null;
     var regime = { name: "NORMAL", since: 0 }, prevName = "", tapeHold = false, staleOn = false, beat = 0, uid = 1;
+    var STEPS = [
+      ["#pairPrice", "> LIVE MARKET DATA", "<b>Real-time prices</b> streamed directly from Binance. <b>Zero delays</b>, pure data."],
+      ["#pairLog", "> DEEP MARKET SCANNING", "The engine keeps scanning the tape. <b>Key metrics</b> land here as they print."],
+      ["#pairStamp", "> SHOCK DETECTION", "When the tape is no longer normal, the stamp turns <b>SHOCK</b>."],
+      [".help", "> DIRECT LINE", "Questions go straight to us. <b>We answer</b>."]
+    ];
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
     function onlineNow() { return navigator.onLine !== false; }
     function setFeed(t) { document.getElementById("feedStatus").textContent = t; }
     function setLive(t, bad) { var el = document.getElementById("pairLive"); el.textContent = t; el.className = bad ? "live bad" : "live"; }
+    function money(x) {
+      var n = Number(x); if (!isFinite(n)) return "—";
+      var p = Math.abs(n).toFixed(2).split(".");
+      p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      return (n < 0 ? "-" : "") + p[0] + "." + p[1];
+    }
     function fmt(n) { return (n > 0 ? "+" : "") + Number(n).toFixed(2) + "%"; }
     function chgClass(n) { return n >= 0 ? "up" : "down"; }
-    function nicePx(x) { var n = Number(x); if (!isFinite(n)) return "—"; if (n >= 1000) return n.toFixed(2); if (n >= 1) return n.toFixed(3); return n.toFixed(5); }
     function clip(s) { return s.length > 48 ? s.slice(0, 48) : s; }
     function median(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[Math.floor(b.length / 2)] : 0; }
     function atr14(list, end) {
@@ -161,18 +178,17 @@
       return { name: state, since: since };
     }
     function paintRegime() {
-      var el = document.getElementById("pairStamp");
-      document.body.classList.toggle("unstable", regime.name === "UNSTABLE" && !staleOn);
+      var el = document.getElementById("pairStamp"), warn = document.getElementById("pairWarn"), shock = regime.name === "UNSTABLE" && !staleOn;
+      warn.className = shock ? "warn on" : "warn";
       if (staleOn) { el.textContent = "STALE · NO LIVE DATA"; el.className = "stamp stale"; return; }
-      el.textContent = regime.name + " · SINCE " + hhmm(regime.since);
-      el.className = "stamp " + regime.name.toLowerCase();
+      el.textContent = (shock ? "SHOCK" : "NORMAL") + " · SINCE " + hhmm(regime.since);
+      el.className = shock ? "stamp unstable" : "stamp";
     }
-    function findPair(id) { for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i]; return { id: id || "BTCUSDT", px: "—", chg: 0, vol: 0 }; }
+    function findPair(id) { for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i]; return { id: id || "BTCUSDT", px: btcPx, chg: btcChg, vol: 0 }; }
     function rowHtml(p) { return '<a class="row" href="#pair/' + p.id + '"><span>' + p.id + '</span><span>' + p.px + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></a>'; }
     function norm(q) { return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
     function draw() {
-      var q = norm(document.getElementById("search").value);
-      var ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
+      var q = norm(document.getElementById("search").value), ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
       document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(rowHtml).join("");
       document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(rowHtml).join("");
       var rows = q ? CATALOG.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }).slice(0, 40) : CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
@@ -183,6 +199,18 @@
       document.getElementById("pairTitle").textContent = p.id;
       document.getElementById("pairPrice").textContent = p.px;
       document.getElementById("pairMove").innerHTML = '<span class="' + chgClass(p.chg) + '">' + (p.chg >= 0 ? "▲" : "▼") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + " 24H</span>";
+    }
+    function applyBtc(px, chg) {
+      btcPx = money(px); if (chg != null) btcChg = Number(chg) || 0;
+      var p = findPair("BTCUSDT"); p.px = btcPx; p.chg = btcChg;
+      if (openId === "BTCUSDT") paintPair(p);
+    }
+    function warmBtc() {
+      fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT").then(function (r) { return r.json(); }).then(function (row) { applyBtc(row.lastPrice, row.priceChangePercent); }).catch(function () {});
+      try {
+        sock = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@miniTicker");
+        sock.onmessage = function (ev) { var msg = JSON.parse(ev.data); applyBtc(msg.c); if (openId === "BTCUSDT") markLive("SOCKET", "BTCUSDT"); };
+      } catch (e) {}
     }
     function volPhrase(q) { if (q >= 3) return "volume abnormal · " + q.toFixed(1) + "x"; if (q >= 1.4) return "volume above normal · " + q.toFixed(1) + "x"; return "volume normal · " + q.toFixed(1) + "x"; }
     function phrase(sym, m) {
@@ -195,11 +223,8 @@
       box.querySelectorAll(".log-line").forEach(function (el) { seen[el.getAttribute("data-id")] = el; });
       tape.forEach(function (row, i) {
         var el = seen[row.id];
-        if (!el) {
-          el = document.createElement("div"); el.className = "log-line"; el.setAttribute("data-id", row.id); el.textContent = row.text;
-          el.style.transform = "translateY(-28px)"; el.style.opacity = "0"; box.appendChild(el);
-          requestAnimationFrame(function () { el.style.transform = "translateY(" + (i * ROW) + "px)"; el.style.opacity = i === 0 ? "1" : "0.32"; });
-        } else { el.style.transform = "translateY(" + (i * ROW) + "px)"; el.style.opacity = i === 0 ? "1" : "0.32"; }
+        if (!el) { el = document.createElement("div"); el.className = "log-line"; el.setAttribute("data-id", row.id); el.textContent = row.text; el.style.transform = "translateY(-28px)"; box.appendChild(el); }
+        el.style.transform = "translateY(" + (i * ROW) + "px)"; el.style.opacity = i === 0 ? "1" : "0.32";
         el.className = "log-line" + (i === 0 ? " bright" : "") + (row.bad ? " bad" : "");
         delete seen[row.id];
       });
@@ -209,51 +234,54 @@
     function pushTape(text, bad) { if (tapeHold) return; tape.unshift({ id: String(uid++), text: text, bad: !!bad }); if (tape.length > 12) tape = tape.slice(0, 12); renderTape(); }
     function seedTape(list, sym) {
       tape = []; var idx = [30, 38, 46, 54, list.length - 1];
-      for (var i = idx.length - 1; i >= 0; i--) { var n = Math.min(list.length - 1, idx[i]); var m = metrics(list, n); tape.unshift({ id: String(uid++), text: clip(sym + " · " + m.S + " of 3 shock signs"), bad: m.S >= 2 }); }
+      for (var i = idx.length - 1; i >= 0; i--) { var n = Math.min(list.length - 1, idx[i]), m = metrics(list, n); tape.unshift({ id: String(uid++), text: clip(sym + " · " + m.S + " of 3 shock signs"), bad: m.S >= 2 }); }
       tape.unshift({ id: String(uid++), text: clip(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet now")), bad: regime.name === "UNSTABLE" });
       tape = tape.slice(0, 12); renderTape();
     }
     function loadBars(id) {
-      fetch("https://data-api.binance.vision/api/v3/klines?symbol=" + id + "&interval=1m&limit=60")
-        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-        .then(function (rows) {
-          if (openId !== id) return;
-          var next = rows.map(function (k) { return { t: k[0], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }; }), first = !bars.length;
-          bars = next; var nextRegime = replay(bars), flipped = prevName && prevName !== nextRegime.name;
-          regime = nextRegime; paintRegime(); var sym = id.replace("USDT", "");
-          if (first) seedTape(bars, sym);
-          if (flipped) pushTape(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet again"), regime.name === "UNSTABLE");
-          prevName = regime.name;
-        }).catch(function () { if (openId === id) { staleOn = true; paintRegime(); } });
+      fetch("https://data-api.binance.vision/api/v3/klines?symbol=" + id + "&interval=1m&limit=60").then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (rows) {
+        if (openId !== id) return;
+        var next = rows.map(function (k) { return { t: k[0], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }; }), first = !bars.length;
+        bars = next; var nextRegime = replay(bars), flipped = prevName && prevName !== nextRegime.name;
+        regime = nextRegime; paintRegime(); var sym = id.replace("USDT", "");
+        if (first) seedTape(bars, sym);
+        if (flipped) pushTape(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet again"), regime.name === "UNSTABLE");
+        prevName = regime.name;
+      }).catch(function () { if (openId === id) { staleOn = true; paintRegime(); } });
     }
-    function stopLive() {
+    function stopLive(keepBtc) {
+      var keep = keepBtc && openId === "BTCUSDT";
       openId = "";
       if (poll) clearInterval(poll); if (barTimer) clearInterval(barTimer); if (tapeTimer) clearInterval(tapeTimer); if (watchDog) clearInterval(watchDog);
       poll = barTimer = tapeTimer = watchDog = null;
-      if (sock) { try { sock.onclose = null; sock.close(); } catch (e) {} sock = null; }
-      document.body.classList.remove("unstable");
+      if (!keep && sock) { try { sock.onclose = null; sock.close(); } catch (e) {} sock = null; }
     }
     function markStale() { staleOn = true; setLive("STALE · NO LIVE DATA", true); paintRegime(); }
     function markLive(how, id) { staleOn = false; setLive("LIVE · " + how + " " + id, false); lastBeat = Date.now(); paintRegime(); }
     function restOne(id) {
       if (!onlineNow()) return markStale();
-      fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id)
-        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-        .then(function (row) { if (openId !== id) return; var p = findPair(id); p.px = nicePx(row.lastPrice); p.chg = Number(row.priceChangePercent) || 0; paintPair(p); markLive("REST", id); })
-        .catch(function () { if (openId === id) markStale(); });
+      fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id).then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (row) {
+        if (openId !== id) return; var p = findPair(id); p.px = money(row.lastPrice); p.chg = Number(row.priceChangePercent) || 0; paintPair(p); markLive("REST", id);
+      }).catch(function () { if (openId === id) markStale(); });
     }
     function startLive(id) {
-      stopLive(); openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
+      var reuse = id === "BTCUSDT" && sock && sock.readyState === 1;
+      stopLive(reuse); openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
       document.getElementById("pairLog").innerHTML = '<i class="live-dot"></i>';
       paintPair(findPair(id)); regime = { name: "NORMAL", since: Date.now() }; paintRegime();
+      if (id === "BTCUSDT" && btcPx !== "—") markLive("SOCKET", id);
       if (!onlineNow()) return markStale();
-      setLive("LIVE · CONNECTING", false); lastBeat = Date.now(); loadBars(id);
+      setLive(reuse ? "LIVE · SOCKET BTCUSDT" : "LIVE · CONNECTING", false); lastBeat = Date.now(); loadBars(id);
       barTimer = setInterval(function () { if (openId === id) loadBars(id); }, 8000);
       tapeTimer = setInterval(function () { if (openId !== id || !bars.length || staleOn || tapeHold) return; var m = metrics(bars, bars.length - 1); pushTape(phrase(id.replace("USDT", ""), m), m.S >= 2); beat++; }, 2500);
+      if (reuse) return;
+      if (sock) { try { sock.close(); } catch (e) {} sock = null; }
       try { sock = new WebSocket("wss://data-stream.binance.vision/ws/" + id.toLowerCase() + "@miniTicker"); }
       catch (e) { restOne(id); poll = setInterval(function () { if (openId === id) restOne(id); }, 3000); return; }
-      sock.onmessage = function (ev) { if (openId !== id) return; var msg = JSON.parse(ev.data), p = findPair(id); p.px = nicePx(msg.c); paintPair(p); markLive("SOCKET", id); };
-      sock.onerror = function () {};
+      sock.onmessage = function (ev) {
+        if (openId !== id) return;
+        var msg = JSON.parse(ev.data), p = findPair(id); p.px = money(msg.c); paintPair(p); markLive("SOCKET", id);
+      };
       sock.onclose = function () { sock = null; if (openId !== id) return; restOne(id); if (!poll) poll = setInterval(function () { if (openId === id) restOne(id); }, 3000); };
       watchDog = setInterval(function () { if (openId === id && (!onlineNow() || Date.now() - lastBeat > 12000)) markStale(); }, 2000);
     }
@@ -263,7 +291,7 @@
       busy = true;
       fetch("https://data-api.binance.vision/api/v3/ticker/24hr").then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (rows) {
         CATALOG = [];
-        for (var i = 0; i < rows.length; i++) if (isSpot(rows[i].symbol)) CATALOG.push({ id: rows[i].symbol, px: nicePx(rows[i].lastPrice), chg: Number(rows[i].priceChangePercent) || 0, vol: Number(rows[i].quoteVolume) || 0 });
+        for (var i = 0; i < rows.length; i++) if (isSpot(rows[i].symbol)) CATALOG.push({ id: rows[i].symbol, px: money(rows[i].lastPrice), chg: Number(rows[i].priceChangePercent) || 0, vol: Number(rows[i].quoteVolume) || 0 });
         setFeed("FEED · " + CATALOG.length + " USDT"); draw();
       }).catch(function () { setFeed("FEED DELAYED"); }).then(function () { busy = false; });
     }
@@ -277,74 +305,74 @@
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
       var left = document.getElementById("leftBtn");
-      if (name === "markets") { left.href = "#markets"; left.setAttribute("data-go", "access"); left.innerHTML = '<span class="dot"></span>TRIAL'; stopLive(); }
-      else { left.href = "#markets"; left.setAttribute("data-go", "markets"); left.textContent = "←"; }
+      if (name === "markets") { left.setAttribute("data-go", "access"); left.innerHTML = '<span class="dot"></span>TRIAL'; stopLive(false); }
+      else { left.setAttribute("data-go", "markets"); left.textContent = "←"; }
       if (name === "pair") startLive(pairId || "BTCUSDT");
-      if (name === "access") { stopLive(); drawAccess(); }
+      if (name === "access") { stopLive(false); drawAccess(); }
     }
     function route() {
       var hash = location.hash || "#markets";
+      if (document.getElementById("intro")) return;
       if (hash.indexOf("#pair") === 0) show("pair", hash.split("/")[1] || "BTCUSDT");
       else if (hash === "#access") show("access");
       else show("markets");
+    }
+    function placeTour() {
+      var s = STEPS[step], el = document.querySelector(s[0]), hole = document.getElementById("tourHole");
+      document.getElementById("tourK").textContent = s[1];
+      document.getElementById("tourN").textContent = (step + 1) + "/4";
+      document.getElementById("tourT").innerHTML = s[2];
+      document.getElementById("tourNext").textContent = step === 3 ? "DONE" : "NEXT →";
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      var r = el.getBoundingClientRect();
+      hole.style.left = (r.left - 6) + "px"; hole.style.top = (r.top - 6) + "px";
+      hole.style.width = (r.width + 12) + "px"; hole.style.height = (r.height + 12) + "px";
+    }
+    function endTour() { document.getElementById("tour").style.display = "none"; }
+    function openFromIntro() {
+      var box = document.getElementById("intro");
+      if (box) box.remove();
+      location.hash = "#pair/BTCUSDT";
+      show("pair", "BTCUSDT");
+      step = 0;
+      document.getElementById("tour").style.display = "block";
+      setTimeout(placeTour, 80);
     }
     function playIntro() {
       var LINES = ["YOUR PLAN BREAKS IN THE SHOCK", "WE FLAG THE SHOCK NOTHING ELSE", "WE DON'T TELL WHEN TO TRADE", "WE TELL YOU WHEN NOT TO"];
       var DELTAS = [2, 1, -1, -2, 2, 6, 2, -1, 1, -1, 4, 6, -2, -4, 8, 5, -4, 7, -2, -1, 2, 2, -3, -6, -16, -4, 1];
       var phraseEl = document.getElementById("phrase"), lineI = 0;
-      function showLine(i) {
-        phraseEl.className = "phrase enter";
-        phraseEl.innerHTML = LINES[i].split(" ").map(function (w, n) { return '<span style="animation-delay:' + (n * 40) + 'ms">' + w + "</span>"; }).join(" ");
-        void phraseEl.offsetWidth; phraseEl.className = "phrase on";
-        setTimeout(function () { phraseEl.className = "phrase on off"; }, 4800);
-      }
-      showLine(0);
-      setInterval(function () { lineI = (lineI + 1) % LINES.length; showLine(lineI); }, 5600);
+      var lineTimer = setInterval(function () { if (!document.getElementById("intro")) { clearInterval(lineTimer); return; } lineI = (lineI + 1) % 4; phraseEl.textContent = LINES[lineI]; }, 2800);
       var canvas = document.getElementById("chart"), ctx = canvas.getContext("2d"), candles = [], close = 80, di = 0, extra = 0;
-      function isShock(n) { return n >= 22; }
-      for (var i = 0; i < 14; i++) {
-        var open = close, n = di % 27, raw = isShock(n);
-        if (raw) extra = 6; else if (extra) extra--;
-        close = open + DELTAS[n]; candles.push({ open: open, close: close, shock: raw || extra > 0 }); di++;
-      }
+      for (var i = 0; i < 14; i++) { var open = close, n = di % 27; close = open + DELTAS[n]; candles.push({ open: open, close: close }); di++; }
       var shift = 0, last = performance.now(), shockOn = false;
-      function badge(shock, edge) {
-        var mode = document.getElementById("mode"), risk = document.getElementById("risk"), wrap = document.getElementById("chartWrap");
-        if (!mode) return;
-        if (shock && !shockOn) {
-          shockOn = true; wrap.className = "chart-wrap hot";
-          mode.textContent = "SHOCK"; mode.className = "mode shock come"; risk.textContent = "DO NOT TRADE";
-        } else if (!shock && shockOn && edge) {
-          shockOn = false; wrap.className = "chart-wrap"; mode.className = "mode leave";
-          setTimeout(function () { mode.textContent = "NORMAL"; mode.className = "mode come"; risk.textContent = "Trade your plan when normal"; }, 200);
-        }
-      }
       function frame(now) {
         if (!document.getElementById("intro")) return;
-        var dt = Math.min(48, now - last); last = now; shift += dt / 800;
+        var dt = Math.min(48, now - last); last = now; shift += dt / 615;
         if (shift >= 1) {
-          shift -= 1; var open2 = candles[candles.length - 1].close, n = di % 27, raw = isShock(n);
+          shift -= 1; var n = di % 27, raw = n >= 22;
           if (raw) extra = 6; else if (extra) extra--;
-          candles.push({ open: open2, close: open2 + DELTAS[n], shock: raw || extra > 0 }); di++;
+          var showShock = raw || extra > 0;
+          candles.push({ open: candles[candles.length - 1].close, close: candles[candles.length - 1].close + DELTAS[n] }); di++;
           if (candles.length > 15) candles.shift();
-          badge(candles[candles.length - 1].shock, true);
+          if (showShock && !shockOn) { shockOn = true; document.getElementById("chartWrap").className = "chart-wrap hot"; document.getElementById("mode").textContent = "SHOCK"; document.getElementById("mode").className = "mode shock"; document.getElementById("risk").textContent = "DO NOT TRADE"; }
+          if (!showShock && shockOn) { shockOn = false; document.getElementById("chartWrap").className = "chart-wrap"; document.getElementById("mode").textContent = "NORMAL"; document.getElementById("mode").className = "mode"; document.getElementById("risk").textContent = "Trade your plan when normal"; }
         }
         var r = canvas.getBoundingClientRect();
         canvas.width = Math.max(1, r.width * devicePixelRatio); canvas.height = Math.max(1, r.height * devicePixelRatio);
-        var w = canvas.width, h = canvas.height, lo = Infinity, hi = -Infinity;
-        for (var c = 0; c < candles.length; c++) { lo = Math.min(lo, candles[c].open, candles[c].close); hi = Math.max(hi, candles[c].open, candles[c].close); }
-        var pad = (hi - lo) * 0.18 || 8; lo -= pad; hi += pad;
-        var step = w / 14, body = step * 0.7, x0 = -shift * step;
+        var w = canvas.width, h = canvas.height, lo = Infinity, hi = -Infinity, c;
+        for (c = 0; c < candles.length; c++) { lo = Math.min(lo, candles[c].open, candles[c].close); hi = Math.max(hi, candles[c].open, candles[c].close); }
+        var padY = (hi - lo) * 0.18 || 8; lo -= padY; hi += padY;
+        var stepW = w / 14, body = stepW * 0.7, x0 = -shift * stepW;
         ctx.clearRect(0, 0, w, h);
         for (c = 0; c < candles.length; c++) {
-          var cd = candles[c], up = cd.close >= cd.open;
-          var y1 = (1 - (cd.open - lo) / (hi - lo)) * h, y2 = (1 - (cd.close - lo) / (hi - lo)) * h;
+          var cd = candles[c], up = cd.close >= cd.open, y1 = (1 - (cd.open - lo) / (hi - lo)) * h, y2 = (1 - (cd.close - lo) / (hi - lo)) * h;
           ctx.fillStyle = shockOn ? (up ? "#f4f1ea" : "#111") : (up ? "#e0a040" : "#ff3b30");
-          ctx.fillRect(x0 + c * step + (step - body) / 2, Math.min(y1, y2), body, Math.max(2, Math.abs(y2 - y1)));
+          ctx.fillRect(x0 + c * stepW + (stepW - body) / 2, Math.min(y1, y2), body, Math.max(2, Math.abs(y2 - y1)));
         }
         requestAnimationFrame(frame);
       }
-      badge(candles[candles.length - 1].shock, true);
       requestAnimationFrame(frame);
     }
     document.getElementById("pairLog").addEventListener("touchstart", function () { tapeHold = true; });
@@ -356,26 +384,22 @@
     });
     document.getElementById("leftBtn").addEventListener("click", function (ev) {
       ev.preventDefault();
-      var go = this.getAttribute("data-go") || "access";
-      if (go === "markets") { location.hash = "#markets"; show("markets"); }
+      if (this.getAttribute("data-go") === "markets") { location.hash = "#markets"; show("markets"); }
       else { location.hash = "#access"; show("access"); }
     });
-    document.getElementById("introBtn").addEventListener("click", function () {
-      var box = document.getElementById("intro");
-      box.classList.add("hide");
-      location.hash = "#pair/BTCUSDT";
-      show("pair", "BTCUSDT");
-      setTimeout(function () { if (box.parentNode) box.remove(); }, 350);
-    });
+    document.getElementById("introBtn").addEventListener("click", openFromIntro);
+    document.getElementById("tourNext").addEventListener("click", function () { step++; if (step > 3) endTour(); else placeTour(); });
+    document.getElementById("tourSkip").addEventListener("click", endTour);
+    window.addEventListener("resize", function () { if (document.getElementById("tour").style.display === "block") placeTour(); });
     window.addEventListener("offline", markStale);
-    window.addEventListener("online", function () { loadPrices(); if ((location.hash || "").indexOf("#pair") === 0) startLive(location.hash.split("/")[1] || "BTCUSDT"); });
+    window.addEventListener("online", function () { loadPrices(); if (openId) startLive(openId); else warmBtc(); });
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) { if (openId) markStale(); stopLive(); }
-      else if ((location.hash || "").indexOf("#pair") === 0) startLive(location.hash.split("/")[1] || "BTCUSDT");
-      else loadPrices();
+      if (document.hidden) { if (openId) markStale(); stopLive(false); }
+      else if (openId) startLive(openId);
+      else { loadPrices(); warmBtc(); }
     });
-    draw(); loadPrices(); setInterval(loadPrices, 20000);
-    window.addEventListener("hashchange", route); route(); playIntro();
+    draw(); loadPrices(); warmBtc(); setInterval(loadPrices, 20000);
+    window.addEventListener("hashchange", route); playIntro();
   </script>
 </body>
 </html>
