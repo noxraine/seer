@@ -120,9 +120,10 @@
   <section id="access" class="screen">
     <div class="access">
       <div class="access-k">ACCESS</div>
-      <div class="access-days" id="daysLeft">30</div>
+      <div class="access-days" id="daysLeft">0</div>
       <div id="daysLabel">DAYS LEFT</div>
-      <button class="btn" id="extendBtn" type="button">EXTEND 30D</button>
+      <div class="access-k" id="payState">NOT PAID</div>
+      <button class="btn" id="payBtn" type="button">PAY WITH CRYPTO</button>
       <p class="legal">Not investment advice. Regime describes range and volume versus the last hour. It is not a signal to buy or sell.</p>
     </div>
   </section>
@@ -177,8 +178,17 @@
       }
       return { name: state, since: since };
     }
+    function hasAccess() {
+      return Number(localStorage.getItem("paidUntil") || "0") > Date.now();
+    }
     function paintRegime() {
       var el = document.getElementById("pairStamp"), warn = document.getElementById("pairWarn"), shock = regime.name === "UNSTABLE" && !staleOn;
+      if (openId && openId !== "BTCUSDT" && !hasAccess()) {
+        el.textContent = "LOCKED";
+        el.className = "stamp";
+        warn.className = "warn";
+        return;
+      }
       warn.className = shock ? "warn on" : "warn";
       if (staleOn) { el.textContent = "STALE · NO LIVE DATA"; el.className = "stamp stale"; return; }
       el.textContent = (shock ? "SHOCK" : "NORMAL") + " · SINCE " + hhmm(regime.since);
@@ -296,11 +306,28 @@
       }).catch(function () { setFeed("FEED DELAYED"); }).then(function () { busy = false; });
     }
     function drawAccess() {
-      var n = parseInt(localStorage.getItem("accessUntil") || "0", 10);
-      if (!n) { n = Date.now() + 30 * DAY; localStorage.setItem("accessUntil", String(n)); }
-      var d = Math.max(0, Math.ceil((n - Date.now()) / DAY));
+      var until = Number(localStorage.getItem("paidUntil") || "0");
+      var d = Math.max(0, Math.ceil((until - Date.now()) / DAY));
       document.getElementById("daysLeft").textContent = d;
       document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
+      document.getElementById("payState").textContent = hasAccess() ? "PAID" : "NOT PAID";
+    }
+    function startPayPoll() {
+      var orderId = localStorage.getItem("orderId");
+      if (!orderId || hasAccess()) return;
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries += 1;
+        fetch("/.netlify/functions/check-access?orderId=" + encodeURIComponent(orderId)).then(function (r) { return r.json(); }).then(function (data) {
+          if (data.paid) {
+            localStorage.setItem("paidUntil", String(data.until));
+            drawAccess();
+            if (openId) paintRegime();
+            clearInterval(timer);
+          }
+        }).catch(function () {});
+        if (tries > 36) clearInterval(timer);
+      }, 5000);
     }
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
@@ -378,9 +405,15 @@
     document.getElementById("pairLog").addEventListener("touchstart", function () { tapeHold = true; });
     document.getElementById("pairLog").addEventListener("touchend", function () { setTimeout(function () { tapeHold = false; }, 4000); });
     document.getElementById("search").addEventListener("input", draw);
-    document.getElementById("extendBtn").addEventListener("click", function () {
-      var n = parseInt(localStorage.getItem("accessUntil") || "0", 10) || Date.now();
-      localStorage.setItem("accessUntil", String(Math.max(n, Date.now()) + 30 * DAY)); drawAccess();
+    document.getElementById("payBtn").addEventListener("click", function () {
+      var btn = this;
+      btn.textContent = "OPENING…";
+      fetch("/.netlify/functions/create-order").then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.payUrl) throw new Error("no link");
+        localStorage.setItem("orderId", data.orderId);
+        startPayPoll();
+        location.href = data.payUrl;
+      }).catch(function () { btn.textContent = "PAY WITH CRYPTO"; });
     });
     document.getElementById("leftBtn").addEventListener("click", function (ev) {
       ev.preventDefault();
@@ -399,7 +432,7 @@
       else { loadPrices(); warmBtc(); }
     });
     draw(); loadPrices(); warmBtc(); setInterval(loadPrices, 20000);
-    window.addEventListener("hashchange", route); playIntro();
+    window.addEventListener("hashchange", route); startPayPoll(); playIntro();
   </script>
 </body>
 </html>
