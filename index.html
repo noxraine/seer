@@ -45,6 +45,13 @@
     .access-days { margin-top: 10px; font-size: 56px; line-height: 1; }
     .btn { display: block; width: 100%; margin-top: 24px; height: 48px; border: 1px solid #FFB000; background: #FFB000; color: #000; font: inherit; letter-spacing: 0.14em; }
     .legal { margin-top: 24px; font-size: 10px; line-height: 1.5; color: #6a5500; }
+    .lock { display: none; margin-top: 18px; }
+    .lock.on { display: block; }
+    .lock-bar { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 12px; border: 1px solid #3DDC84; color: #3DDC84; letter-spacing: 0.08em; font-size: 13px; }
+    .lock-copy { margin-top: 16px; color: #FFB000; font-size: 15px; line-height: 1.45; }
+    .lock-copy p + p { margin-top: 12px; }
+    .lock .btn { margin-top: 28px; }
+
     #intro { position: fixed; inset: 0; z-index: 40; background: #000; display: flex; justify-content: center; }
     .intro-col { width: 100%; max-width: 420px; min-height: 100%; padding: 10vh 24px 12vh; display: flex; flex-direction: column; }
     .slogans { position: relative; height: 84px; margin-bottom: 28px; }
@@ -111,10 +118,17 @@
       <div class="pair-price" id="pairPrice">—</div>
       <div class="pair-move" id="pairMove"></div>
       <div class="live" id="pairLive">LIVE · OFF</div>
-      <div class="stamp" id="pairStamp">NORMAL</div>
-      <div class="warn" id="pairWarn">Unstable do not add risk</div>
-      <div class="pulse-head">MARKET PULSE</div>
-      <div class="log" id="pairLog"><i class="live-dot"></i></div>
+      <div id="pairOpen">
+        <div class="stamp" id="pairStamp">NORMAL</div>
+        <div class="warn" id="pairWarn">Unstable do not add risk</div>
+        <div class="pulse-head">MARKET PULSE</div>
+        <div class="log" id="pairLog"><i class="live-dot"></i></div>
+      </div>
+      <div class="lock" id="pairLock">
+        <div class="lock-bar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3DDC84" stroke-width="2"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>SUBSCRIBE TO SEE ALL PAIRS</div>
+        <div class="lock-copy"><p>BTC is always free without any limits.</p><p>Trade your pairs like a pro with full access.</p></div>
+        <button class="btn" id="subscribeBtn" type="button">SUBSCRIBE</button>
+      </div>
     </div>
   </section>
   <section id="access" class="screen">
@@ -183,12 +197,10 @@
     }
     function paintRegime() {
       var el = document.getElementById("pairStamp"), warn = document.getElementById("pairWarn"), shock = regime.name === "UNSTABLE" && !staleOn;
-      if (openId && openId !== "BTCUSDT" && !hasAccess()) {
-        el.textContent = "LOCKED";
-        el.className = "stamp";
-        warn.className = "warn";
-        return;
-      }
+      var locked = openId && openId !== "BTCUSDT" && !hasAccess();
+      document.getElementById("pairOpen").style.display = locked ? "none" : "block";
+      document.getElementById("pairLock").className = locked ? "lock on" : "lock";
+      if (locked) return;
       warn.className = shock ? "warn on" : "warn";
       if (staleOn) { el.textContent = "STALE · NO LIVE DATA"; el.className = "stamp stale"; return; }
       el.textContent = (shock ? "SHOCK" : "NORMAL") + " · SINCE " + hhmm(regime.since);
