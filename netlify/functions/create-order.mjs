@@ -11,9 +11,9 @@ export default async function handler() {
     body: JSON.stringify({
       MerchantId: merchantId,
       OrderId: orderId,
-      OrderAmount: 9.99,
+      OrderAmount: 1,
       OrderCurrency: "USD",
-      Memo: "Regime PH 30 days"
+      Memo: "Regime PH 30 days test"
     })
   });
   var data = await response.json().catch(function () { return {}; });
