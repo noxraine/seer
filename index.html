@@ -45,6 +45,20 @@
     .access-days { margin-top: 10px; font-size: 56px; line-height: 1; }
     .btn { display: block; width: 100%; margin-top: 24px; height: 48px; border: 1px solid #FFB000; background: #FFB000; color: #000; font: inherit; letter-spacing: 0.14em; }
     .legal { margin-top: 24px; font-size: 10px; line-height: 1.5; color: #6a5500; }
+    #offer { display: none; position: fixed; inset: 0; z-index: 70; background: #000; }
+    #offer.on { display: flex; justify-content: center; }
+    .offer-col { width: 100%; max-width: 420px; min-height: 100%; padding: 18vh 24px 32px; display: flex; flex-direction: column; position: relative; }
+    .offer-x { position: absolute; top: 18px; right: 18px; width: 44px; height: 44px; border: 0; background: transparent; color: #8A7000; font: inherit; font-size: 22px; opacity: 0; pointer-events: none; }
+    .offer-x.show { opacity: 1; pointer-events: auto; }
+    .offer-h { font-size: 28px; font-weight: 600; line-height: 1.25; letter-spacing: 0.03em; color: #ffe7b0; }
+    .offer-sub { margin-top: 14px; font-size: 14px; line-height: 1.4; color: #FFB000; }
+    .offer-note { margin-top: 8px; font-size: 13px; color: #8A7000; }
+    .offer-pay { margin-top: 36px; height: 52px; border: 0; background: #FFB000; color: #000; font: inherit; font-size: 16px; letter-spacing: 0.12em; }
+    .offer-no { margin-top: 8px; height: 44px; border: 0; background: transparent; color: #8A7000; font: inherit; font-size: 13px; letter-spacing: 0.08em; }
+    .offer-foot { margin-top: auto; padding-top: 28px; font-size: 13px; line-height: 1.4; color: #FFB000; }
+    .offer-step { display: none; flex: 1; flex-direction: column; }
+    .offer-step.on { display: flex; }
+
     .lock { display: none; margin-top: 18px; }
     .lock.on { display: block; }
     .lock-bar { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 12px; border: 1px solid #3DDC84; color: #3DDC84; letter-spacing: 0.08em; font-size: 13px; }
@@ -96,6 +110,33 @@
       <div class="tour-t" id="tourT"></div>
       <hr class="tour-line">
       <div class="tour-row"><button type="button" id="tourSkip">SKIP</button><button type="button" id="tourNext">NEXT →</button></div>
+    </div>
+  </div>
+
+  <div id="offer">
+    <button class="offer-x" id="offerX" type="button">x</button>
+    <div class="offer-col">
+      <div class="offer-step" id="offer1">
+        <div class="offer-h">Trade all pairs like a pro for $11.4 a month</div>
+        <div class="offer-sub">No auto-charges.</div>
+        <button class="offer-pay" type="button">PAY WITH CRYPTO</button>
+        <button class="offer-no" type="button" data-next="2">Not interested</button>
+        <div class="offer-foot">Ready to trade the inefficient market</div>
+      </div>
+      <div class="offer-step" id="offer2">
+        <div class="offer-h">$7.9 for the first month</div>
+        <div class="offer-sub">30% off right now.</div>
+        <div class="offer-note">No auto-charges.</div>
+        <button class="offer-pay" type="button">PAY WITH CRYPTO</button>
+        <button class="offer-no" type="button" data-next="3">Not interested</button>
+        <div class="offer-foot">Most traders lose here, but not me</div>
+      </div>
+      <div class="offer-step" id="offer3">
+        <div class="offer-h">Trying something new shouldn't be expensive</div>
+        <div class="offer-sub">Exclusive 1-week access for just $1.9.</div>
+        <div class="offer-note">How much did your last wrong trade cost you?</div>
+        <button class="offer-pay" type="button">START 1-WEEK ACCESS</button>
+      </div>
     </div>
   </div>
   <header class="topbar">
@@ -191,6 +232,23 @@
         prevS = m.S;
       }
       return { name: state, since: since };
+    }
+
+    var offerTimer = null;
+    function openOffer(n) {
+      document.getElementById("offer").className = "on";
+      document.getElementById("offer1").className = "offer-step" + (n === 1 ? " on" : "");
+      document.getElementById("offer2").className = "offer-step" + (n === 2 ? " on" : "");
+      document.getElementById("offer3").className = "offer-step" + (n === 3 ? " on" : "");
+      var x = document.getElementById("offerX");
+      x.className = "offer-x";
+      if (offerTimer) clearTimeout(offerTimer);
+      if (n === 3) offerTimer = setTimeout(function () { x.className = "offer-x show"; }, 5000);
+    }
+    function closeOffer() {
+      if (offerTimer) clearTimeout(offerTimer);
+      document.getElementById("offer").className = "";
+      document.getElementById("offerX").className = "offer-x";
     }
     function hasAccess() {
       return Number(localStorage.getItem("paidUntil") || "0") > Date.now();
@@ -417,16 +475,13 @@
     document.getElementById("pairLog").addEventListener("touchstart", function () { tapeHold = true; });
     document.getElementById("pairLog").addEventListener("touchend", function () { setTimeout(function () { tapeHold = false; }, 4000); });
     document.getElementById("search").addEventListener("input", draw);
-    document.getElementById("payBtn").addEventListener("click", function () {
-      var btn = this;
-      btn.textContent = "OPENING…";
-      fetch("/.netlify/functions/create-order").then(function (r) { return r.json(); }).then(function (data) {
-        if (!data.payUrl) throw new Error("no link");
-        localStorage.setItem("orderId", data.orderId);
-        startPayPoll();
-        location.href = data.payUrl;
-      }).catch(function () { btn.textContent = "PAY WITH CRYPTO"; });
+    document.getElementById("payBtn").addEventListener("click", function () { openOffer(1); });
+    document.getElementById("subscribeBtn").addEventListener("click", function () { openOffer(1); });
+    document.getElementById("offer").addEventListener("click", function (ev) {
+      var next = ev.target.getAttribute && ev.target.getAttribute("data-next");
+      if (next) openOffer(Number(next));
     });
+    document.getElementById("offerX").addEventListener("click", closeOffer);
     document.getElementById("leftBtn").addEventListener("click", function (ev) {
       ev.preventDefault();
       if (this.getAttribute("data-go") === "markets") { location.hash = "#markets"; show("markets"); }
