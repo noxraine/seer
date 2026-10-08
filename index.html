@@ -48,9 +48,9 @@
     #offer { display: none; position: fixed; inset: 0; z-index: 70; background: #000; }
     #offer.on { display: flex; justify-content: center; }
     .offer-col { width: 100%; max-width: 420px; min-height: 100%; padding: 18vh 24px 32px; display: flex; flex-direction: column; position: relative; }
-    .offer-x { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border: 0; background: transparent; opacity: 0; pointer-events: none; }
+    .offer-x { position: absolute; top: 12px; right: 12px; z-index: 5; width: 44px; height: 44px; border: 0; background: transparent; opacity: 0; pointer-events: none; transform: rotate(45deg); }
     .offer-x.show { opacity: 1; pointer-events: auto; }
-    .offer-x i, .offer-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #8A7000; }
+    .offer-x i, .offer-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #ffe7b0; pointer-events: none; }
     .offer-x b { transform: rotate(90deg); }
     .offer-pop { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.72); align-items: center; justify-content: center; padding: 24px; }
     .offer-pop.on { display: flex; }
@@ -495,7 +495,7 @@
     document.getElementById("search").addEventListener("input", draw);
     document.getElementById("payBtn").addEventListener("click", function () { openOffer(1); });
     document.getElementById("subscribeBtn").addEventListener("click", function () { openOffer(1); });
-    document.getElementById("offerX").addEventListener("click", askLeave);
+    document.getElementById("offerX").addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); askLeave(); });
     document.getElementById("offerPopNo").addEventListener("click", function () { openOffer(offerStep + 1); });
     document.getElementById("leftBtn").addEventListener("click", function (ev) {
       ev.preventDefault();
