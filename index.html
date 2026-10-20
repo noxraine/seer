@@ -39,7 +39,10 @@
     .shock-x i, .shock-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #ffe7b0; }
     .shock-x b { transform: rotate(90deg); }
     body.tour-lock { overflow: hidden; }
-    .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 8px; align-items: center; min-height: 52px; }
+    .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 36px 1.2fr 1fr auto; gap: 8px; align-items: center; min-height: 52px; }
+    .row a { color: #FFB000; text-decoration: none; }
+    .flag svg { display: block; margin: 0 auto; }
+    .search::-webkit-search-cancel-button, .search::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
     .up { color: #3DDC84; } .down { color: #FF4D4D; }
     .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px; }
     .board .row { width: 100%; margin: 8px 0 0; grid-template-columns: 1fr auto; padding: 10px 8px; font-size: 11px; }
@@ -228,6 +231,7 @@
       [".help", "Direct line to support"]
     ];
     var pins = JSON.parse(localStorage.getItem("pins") || "[]");
+    var pingMs = "--";
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
     function onlineNow() { return navigator.onLine !== false; }
@@ -309,9 +313,10 @@
     }
     function findPair(id) { for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i]; return { id: id || "BTCUSDT", px: btcPx, chg: btcChg, vol: 0 }; }
     function boardHtml(p) { return '<a class="row" href="#pair/' + p.id + '"><span>' + p.id.replace("USDT", "") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></a>'; }
+    function flagSvg(on) { return '<svg width="16" height="16" viewBox="0 0 18 18"><path d="M4 1 v16" stroke="#5a4a28" stroke-width="2"/><path d="M4 3 L15 8 L4 13 Z" fill="' + (on ? "#e0a040" : "none") + '" stroke="#5a4a28"/></svg>'; }
     function rowHtml(p) {
-      var on = pins.indexOf(p.id) >= 0 ? " on" : "";
-      return '<div class="row"><button class="flag' + on + '" type="button" data-pin="' + p.id + '"><i></i></button><a href="#pair/' + p.id + '">' + p.id.replace("USDT", "") + '</a><span>' + p.px + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></div>';
+      var on = pins.indexOf(p.id) >= 0;
+      return '<div class="row"><button class="flag' + (on ? " on" : "") + '" type="button" data-pin="' + p.id + '">' + flagSvg(on) + '</button><a href="#pair/' + p.id + '">' + p.id.replace("USDT", "") + '</a><span>' + p.px + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></div>';
     }
     function norm(q) { return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
     function tradable(p) { return p.id.slice(-4) === "USDT" && p.id.indexOf("USDC") < 0 && p.id !== "USDTUSDT"; }
@@ -330,7 +335,7 @@
         other.sort(function (a, b) { return b.vol - a.vol; });
         rest = []; if (btc) rest.push(btc); if (eth) rest.push(eth); rest = rest.concat(other.slice(0, 30));
       }
-      document.getElementById("list").innerHTML = fav.concat(rest).map(rowHtml).join("") || '<p class="label">NO MATCH</p>';
+      document.getElementById("list").innerHTML = fav.concat(rest).map(rowHtml).join("") || '<p class="label">Not Found</p>';
     }
     function paintPair(p) {
       document.getElementById("pairTitle").textContent = p.id;
@@ -406,7 +411,7 @@
       stopLive(reuse); openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
       document.getElementById("pairLog").innerHTML = '<i class="live-dot"></i>';
       paintPair(findPair(id)); regime = { name: "NORMAL", since: Date.now() }; paintRegime();
-      pushTape("LIVE PING · 40ms", false);
+      pushTape("LIVE PING · " + pingMs + "ms", false);
       if (id === "BTCUSDT" && btcPx !== "—") markLive("SOCKET", id);
       if (!onlineNow()) return markStale();
       setLive(reuse ? "LIVE · SOCKET BTCUSDT" : "LIVE · CONNECTING", false); lastBeat = Date.now(); loadBars(id);
@@ -430,7 +435,7 @@
       fetch("https://data-api.binance.vision/api/v3/ticker/24hr").then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (rows) {
         CATALOG = [];
         for (var i = 0; i < rows.length; i++) if (isSpot(rows[i].symbol)) CATALOG.push({ id: rows[i].symbol, px: money(rows[i].lastPrice), chg: Number(rows[i].priceChangePercent) || 0, vol: Number(rows[i].quoteVolume) || 0 });
-        setFeed("LIVE PING · 40ms"); draw();
+        setFeed("LIVE PING · " + pingMs + "ms"); draw();
       }).catch(function () { setFeed("LIVE PING · --"); }).then(function () { busy = false; });
     }
     function drawAccess() {
@@ -533,7 +538,7 @@
     }
     document.getElementById("pairLog").addEventListener("touchstart", function () { tapeHold = true; });
     document.getElementById("pairLog").addEventListener("touchend", function () { setTimeout(function () { tapeHold = false; }, 4000); });
-    document.getElementById("search").addEventListener("input", draw);
+    document.getElementById("search").addEventListener("input", function () { var v = this.value.toUpperCase(); if (this.value !== v) this.value = v; draw(); });
     document.getElementById("list").addEventListener("click", function (ev) {
       var btn = ev.target.closest && ev.target.closest("[data-pin]");
       if (!btn) return;
@@ -565,7 +570,14 @@
       else if (openId) startLive(openId);
       else { loadPrices(); warmBtc(); }
     });
-    draw(); loadPrices(); warmBtc(); setInterval(loadPrices, 20000);
+    function measurePing() {
+      var t0 = performance.now();
+      fetch("https://data-api.binance.vision/api/v3/ping").then(function () {
+        pingMs = String(Math.max(1, Math.round(performance.now() - t0)));
+        setFeed("LIVE PING · " + pingMs + "ms");
+      }).catch(function () { setFeed("LIVE PING · --"); });
+    }
+    draw(); loadPrices(); warmBtc(); measurePing(); setInterval(loadPrices, 20000);
     window.addEventListener("hashchange", route); startPayPoll(); playIntro();
   </script>
 </body>
