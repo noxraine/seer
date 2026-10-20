@@ -39,7 +39,8 @@
     .shock-x i, .shock-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #ffe7b0; }
     .shock-x b { transform: rotate(90deg); }
     body.tour-lock { overflow: hidden; }
-    .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 36px 1.2fr 1fr auto; gap: 8px; align-items: center; min-height: 52px; }
+    .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 36px minmax(0,1fr) auto auto; gap: 8px; align-items: center; min-height: 52px; }
+    .row span { white-space: nowrap; }
     .row a { color: #FFB000; text-decoration: none; }
     .flag svg { display: block; margin: 0 auto; }
     .search::-webkit-search-cancel-button, .search::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
@@ -231,6 +232,7 @@
       [".help", "Direct line to support"]
     ];
     var pins = JSON.parse(localStorage.getItem("pins") || "[]");
+    var shownPins = pins.slice();
     var pingMs = "--";
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
@@ -327,7 +329,7 @@
       document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(boardHtml).join("");
       var hit = q ? book.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }) : book;
       var fav = [], rest = [], seen = {};
-      pins.forEach(function (id) { var p = null; hit.forEach(function (x) { if (x.id === id) p = x; }); if (p) { fav.push(p); seen[id] = 1; } });
+      shownPins.forEach(function (id) { var p = null; hit.forEach(function (x) { if (x.id === id) p = x; }); if (p) { fav.push(p); seen[id] = 1; } });
       hit.forEach(function (p) { if (!seen[p.id]) rest.push(p); });
       if (!q) {
         var btc = null, eth = null, other = [];
@@ -465,7 +467,7 @@
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
       var left = document.getElementById("leftBtn");
-      if (name === "markets") { left.setAttribute("data-go", "access"); left.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB000" stroke-width="1.4"><path d="M1 7 L7 2 L13 7"/><path d="M3 6.5 V12 H11 V6.5"/></svg><span>HOME</span>'; stopLive(false); }
+      if (name === "markets") { shownPins = pins.slice(); draw(); left.setAttribute("data-go", "access"); left.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB000" stroke-width="1.4"><path d="M1 7 L7 2 L13 7"/><path d="M3 6.5 V12 H11 V6.5"/></svg><span>HOME</span>'; stopLive(false); }
       else { left.setAttribute("data-go", "markets"); left.innerHTML = '<span>←</span><span>ALL MARKETS</span>'; }
       if (name === "pair") startLive(pairId || "BTCUSDT");
       if (name === "access") { stopLive(false); drawAccess(); }
