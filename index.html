@@ -16,7 +16,29 @@
     .screen.active { display: block; }
     .label { padding: 16px 16px 6px; font-size: 11px; letter-spacing: 0.14em; color: #8A7000; }
     .search-wrap { padding: 8px 16px 4px; }
-    .search { width: 100%; height: 40px; background: #0a0a0a; border: 1px solid #2A2A2A; color: #FFB000; padding: 0 12px; font: inherit; font-size: 14px; outline: none; }
+    .search-wrap { position: relative; }
+    .search { width: 100%; height: 44px; background: #FFB000; border: 0; color: #000; padding: 0 40px 0 12px; font: inherit; font-size: 14px; outline: none; }
+    .search::placeholder { color: #000; opacity: 0.72; }
+    .glass { position: absolute; right: 28px; top: 20px; width: 16px; height: 16px; border: 2px solid #000; border-radius: 50%; }
+    .glass:after { content: ""; position: absolute; width: 7px; height: 2px; background: #000; right: -5px; bottom: -1px; transform: rotate(45deg); }
+    .board.upb .row { border-color: #3DDC84; }
+    .board.dnb .row { border-color: #FF4D4D; }
+    .flag { width: 44px; height: 44px; border: 0; background: transparent; padding: 0; }
+    .flag i { display: block; width: 10px; height: 14px; margin: 0 auto; border: 1px solid #5a4a28; background: transparent; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+    .flag.on i { background: #e0a040; border-color: #e0a040; }
+    .row { grid-template-columns: 44px 1.2fr 1fr auto; }
+    .board .row { grid-template-columns: 1fr auto; }
+    .stamp { position: relative; }
+    .q { display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 1px solid #fff; background: transparent; color: #fff; font: inherit; }
+    .stamp.unstable .q { display: block; }
+    .fine { margin: 18px 16px 8px; font-size: 10px; line-height: 1.45; color: #6a5500; }
+    #shockHelp { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.82); }
+    #shockHelp.on { display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .shock-card { width: 100%; max-width: 360px; border: 1px solid #2A2A2A; background: #000; padding: 48px 20px 24px; position: relative; color: #ffe7b0; line-height: 1.45; }
+    .shock-x { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 0; background: transparent; transform: rotate(45deg); }
+    .shock-x i, .shock-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #ffe7b0; }
+    .shock-x b { transform: rotate(90deg); }
+    body.tour-lock { overflow: hidden; }
     .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 8px; align-items: center; min-height: 52px; }
     .up { color: #3DDC84; } .down { color: #FF4D4D; }
     .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px; }
@@ -104,9 +126,9 @@
 <body>
   <div id="intro">
     <div class="intro-col">
-      <div class="slogans"><div class="phrase" id="phrase">YOUR PLAN BREAKS IN THE SHOCK</div></div>
+      <div class="slogans"><div class="phrase" id="phrase">We do not tell you how to trade</div></div>
       <div class="chart-wrap" id="chartWrap"><canvas id="chart"></canvas></div>
-      <div class="badge"><div class="mode" id="mode">NORMAL</div><div class="risk" id="risk">Trade your plan when normal</div></div>
+      <div class="badge"><div class="mode" id="mode">NORMAL</div><div class="risk" id="risk">Trade your strategy</div></div>
       <button class="intro-btn" id="introBtn" type="button">TRY ON BTC</button>
     </div>
   </div>
@@ -153,13 +175,12 @@
     <a class="help" href="https://t.me/your_cashier_bot" target="_blank" rel="noopener">HELP</a>
   </header>
   <section id="markets" class="screen">
-    <div class="feed" id="feedStatus">FEED · LOADING</div>
-    <div class="search-wrap"><input id="search" class="search" type="search" placeholder="btc, bitcoin, BTCUSDT" autocomplete="off"></div>
+    <div class="feed" id="feedStatus">LIVE PING · 40ms</div>
     <div class="boards">
-      <div class="board"><div class="label">GAINERS 24H</div><div id="gainers"></div></div>
-      <div class="board"><div class="label">LOSERS 24H</div><div id="losers"></div></div>
+      <div class="board upb"><div class="label">GAINERS 24H</div><div id="gainers"></div></div>
+      <div class="board dnb"><div class="label">LOSERS 24H</div><div id="losers"></div></div>
     </div>
-    <div class="label" id="listLabel">MARKETS · TOP VOL</div>
+    <div class="search-wrap"><input id="search" class="search" type="search" placeholder="Find your coin" autocomplete="off"><i class="glass"></i></div>
     <div id="list"></div>
   </section>
   <section id="pair" class="screen">
@@ -169,8 +190,8 @@
       <div class="pair-move" id="pairMove"></div>
       <div class="live" id="pairLive">LIVE · OFF</div>
       <div id="pairOpen">
-        <div class="stamp" id="pairStamp">NORMAL</div>
-        <div class="warn" id="pairWarn">Unstable do not add risk</div>
+        <div class="stamp" id="pairStamp">NORMAL<button class="q" id="shockQ" type="button">?</button></div>
+        <div class="warn on" id="pairWarn">Stable · Trade your strategy</div>
         <div class="pulse-head">MARKET PULSE</div>
         <div class="log" id="pairLog"><i class="live-dot"></i></div>
       </div>
@@ -179,8 +200,10 @@
         <div class="lock-copy"><p>BTC is always free without any limits.</p><p>Trade your pairs like a pro with full access.</p></div>
         <button class="btn" id="subscribeBtn" type="button">SUBSCRIBE</button>
       </div>
+      <p class="fine">Not investment advice. This app provides informational and analytical content only. It does not consider your objectives, experience, or risk tolerance and does not guarantee accuracy or profitability. Trading involves a high risk of loss. You are solely responsible for your decisions.</p>
     </div>
   </section>
+  <div id="shockHelp"><div class="shock-card"><button class="shock-x" id="shockHelpX" type="button" aria-label="close"><i></i><b></b></button><p>Lorem Ipsum</p></div></div>
   <section id="access" class="screen">
     <div class="access">
       <div class="access-k">ACCESS</div>
@@ -199,11 +222,12 @@
     var tapeTimer = null, barTimer = null, watchDog = null;
     var regime = { name: "NORMAL", since: 0 }, prevName = "", tapeHold = false, staleOn = false, beat = 0, uid = 1;
     var STEPS = [
-      ["#pairPrice", "> LIVE MARKET DATA", "<b>Real-time prices</b> streamed directly from Binance. <b>Zero delays</b>, pure data."],
-      ["#pairLog", "> DEEP MARKET SCANNING", "The engine keeps scanning the tape. <b>Key metrics</b> land here as they print."],
-      ["#pairStamp", "> SHOCK DETECTION", "When the tape is no longer normal, the stamp turns <b>SHOCK</b>."],
-      [".help", "> DIRECT LINE", "Questions go straight to us. <b>We answer</b>."]
+      ["#pairPrice", "Live prices from Binance"],
+      ["#pairLog", "Key metrics, scanned in real time"],
+      ["#pairStamp", "SHOCK when the tape turns unusual"],
+      [".help", "Direct line to support"]
     ];
+    var pins = JSON.parse(localStorage.getItem("pins") || "[]");
     function pad(n) { return ("0" + n).slice(-2); }
     function hhmm(ts) { var d = new Date(ts || Date.now()); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
     function onlineNow() { return navigator.onLine !== false; }
@@ -277,21 +301,36 @@
       document.getElementById("pairOpen").style.display = locked ? "none" : "block";
       document.getElementById("pairLock").className = locked ? "lock on" : "lock";
       if (locked) return;
-      warn.className = shock ? "warn on" : "warn";
-      if (staleOn) { el.textContent = "STALE · NO LIVE DATA"; el.className = "stamp stale"; return; }
-      el.textContent = (shock ? "SHOCK" : "NORMAL") + " · SINCE " + hhmm(regime.since);
+      if (staleOn) { if (el.childNodes[0]) el.childNodes[0].nodeValue = "STALE · NO LIVE DATA"; el.className = "stamp stale"; warn.className = "warn"; return; }
       el.className = shock ? "stamp unstable" : "stamp";
+      if (el.childNodes[0]) el.childNodes[0].nodeValue = (shock ? "SHOCK" : "NORMAL") + " · SINCE " + hhmm(regime.since);
+      warn.textContent = shock ? "Unstable · Do not add risk" : "Stable · Trade your strategy";
+      warn.className = "warn on";
     }
     function findPair(id) { for (var i = 0; i < CATALOG.length; i++) if (CATALOG[i].id === id) return CATALOG[i]; return { id: id || "BTCUSDT", px: btcPx, chg: btcChg, vol: 0 }; }
-    function rowHtml(p) { return '<a class="row" href="#pair/' + p.id + '"><span>' + p.id + '</span><span>' + p.px + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></a>'; }
+    function boardHtml(p) { return '<a class="row" href="#pair/' + p.id + '"><span>' + p.id.replace("USDT", "") + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></a>'; }
+    function rowHtml(p) {
+      var on = pins.indexOf(p.id) >= 0 ? " on" : "";
+      return '<div class="row"><button class="flag' + on + '" type="button" data-pin="' + p.id + '"><i></i></button><a href="#pair/' + p.id + '">' + p.id.replace("USDT", "") + '</a><span>' + p.px + '</span><span class="' + chgClass(p.chg) + '">' + fmt(p.chg) + '</span></div>';
+    }
     function norm(q) { return String(q || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+    function tradable(p) { return p.id.slice(-4) === "USDT" && p.id.indexOf("USDC") < 0 && p.id !== "USDTUSDT"; }
     function draw() {
-      var q = norm(document.getElementById("search").value), ranked = CATALOG.slice().sort(function (a, b) { return b.chg - a.chg; });
-      document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(rowHtml).join("");
-      document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(rowHtml).join("");
-      var rows = q ? CATALOG.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }).slice(0, 40) : CATALOG.slice().sort(function (a, b) { return b.vol - a.vol; }).slice(0, 30);
-      document.getElementById("listLabel").textContent = q ? "SEARCH" : "MARKETS · TOP VOL";
-      document.getElementById("list").innerHTML = rows.map(rowHtml).join("") || '<p class="label">NO MATCH</p>';
+      var book = CATALOG.filter(tradable);
+      var q = norm(document.getElementById("search").value), ranked = book.slice().sort(function (a, b) { return b.chg - a.chg; });
+      document.getElementById("gainers").innerHTML = ranked.slice(0, 5).map(boardHtml).join("");
+      document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(boardHtml).join("");
+      var hit = q ? book.filter(function (p) { return p.id.indexOf(q) !== -1 || ALIAS[q] === p.id; }) : book;
+      var fav = [], rest = [], seen = {};
+      pins.forEach(function (id) { var p = null; hit.forEach(function (x) { if (x.id === id) p = x; }); if (p) { fav.push(p); seen[id] = 1; } });
+      hit.forEach(function (p) { if (!seen[p.id]) rest.push(p); });
+      if (!q) {
+        var btc = null, eth = null, other = [];
+        rest.forEach(function (p) { if (p.id === "BTCUSDT") btc = p; else if (p.id === "ETHUSDT") eth = p; else other.push(p); });
+        other.sort(function (a, b) { return b.vol - a.vol; });
+        rest = []; if (btc) rest.push(btc); if (eth) rest.push(eth); rest = rest.concat(other.slice(0, 30));
+      }
+      document.getElementById("list").innerHTML = fav.concat(rest).map(rowHtml).join("") || '<p class="label">NO MATCH</p>';
     }
     function paintPair(p) {
       document.getElementById("pairTitle").textContent = p.id;
@@ -321,7 +360,7 @@
       box.querySelectorAll(".log-line").forEach(function (el) { seen[el.getAttribute("data-id")] = el; });
       tape.forEach(function (row, i) {
         var el = seen[row.id];
-        if (!el) { el = document.createElement("div"); el.className = "log-line"; el.setAttribute("data-id", row.id); el.textContent = row.text; el.style.transform = "translateY(-28px)"; box.appendChild(el); }
+        if (!el) { el = document.createElement("div"); el.className = "log-line"; el.setAttribute("data-id", row.id); el.style.transform = "translateY(-28px)"; box.appendChild(el); typeLine(el, row.text); }
         el.style.transform = "translateY(" + (i * ROW) + "px)"; el.style.opacity = i === 0 ? "1" : "0.32";
         el.className = "log-line" + (i === 0 ? " bright" : "") + (row.bad ? " bad" : "");
         delete seen[row.id];
@@ -329,6 +368,7 @@
       Object.keys(seen).forEach(function (id) { seen[id].remove(); });
       if (dot) box.appendChild(dot);
     }
+    function typeLine(el, text) { var i = 0; el.textContent = ""; var timer = setInterval(function () { i++; el.textContent = text.slice(0, i); if (i >= text.length) clearInterval(timer); }, 28); }
     function pushTape(text, bad) { if (tapeHold) return; tape.unshift({ id: String(uid++), text: text, bad: !!bad }); if (tape.length > 12) tape = tape.slice(0, 12); renderTape(); }
     function seedTape(list, sym) {
       tape = []; var idx = [30, 38, 46, 54, list.length - 1];
@@ -342,7 +382,6 @@
         var next = rows.map(function (k) { return { t: k[0], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }; }), first = !bars.length;
         bars = next; var nextRegime = replay(bars), flipped = prevName && prevName !== nextRegime.name;
         regime = nextRegime; paintRegime(); var sym = id.replace("USDT", "");
-        if (first) seedTape(bars, sym);
         if (flipped) pushTape(sym + " · " + (regime.name === "UNSTABLE" ? "shock on" : "quiet again"), regime.name === "UNSTABLE");
         prevName = regime.name;
       }).catch(function () { if (openId === id) { staleOn = true; paintRegime(); } });
@@ -367,6 +406,7 @@
       stopLive(reuse); openId = id; bars = []; tape = []; staleOn = false; prevName = ""; beat = 0;
       document.getElementById("pairLog").innerHTML = '<i class="live-dot"></i>';
       paintPair(findPair(id)); regime = { name: "NORMAL", since: Date.now() }; paintRegime();
+      pushTape("LIVE PING · 40ms", false);
       if (id === "BTCUSDT" && btcPx !== "—") markLive("SOCKET", id);
       if (!onlineNow()) return markStale();
       setLive(reuse ? "LIVE · SOCKET BTCUSDT" : "LIVE · CONNECTING", false); lastBeat = Date.now(); loadBars(id);
@@ -385,13 +425,13 @@
     }
     function isSpot(sym) { return sym && sym.slice(-4) === "USDT" && sym.indexOf("UP") < 0 && sym.indexOf("DOWN") < 0 && sym.indexOf("BULL") < 0 && sym.indexOf("BEAR") < 0; }
     function loadPrices() {
-      if (busy || !onlineNow()) { if (!onlineNow()) setFeed("FEED DELAYED"); return; }
+      if (busy || !onlineNow()) { if (!onlineNow()) setFeed("LIVE PING · --"); return; }
       busy = true;
       fetch("https://data-api.binance.vision/api/v3/ticker/24hr").then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (rows) {
         CATALOG = [];
         for (var i = 0; i < rows.length; i++) if (isSpot(rows[i].symbol)) CATALOG.push({ id: rows[i].symbol, px: money(rows[i].lastPrice), chg: Number(rows[i].priceChangePercent) || 0, vol: Number(rows[i].quoteVolume) || 0 });
-        setFeed("FEED · " + CATALOG.length + " USDT"); draw();
-      }).catch(function () { setFeed("FEED DELAYED"); }).then(function () { busy = false; });
+        setFeed("LIVE PING · 40ms"); draw();
+      }).catch(function () { setFeed("LIVE PING · --"); }).then(function () { busy = false; });
     }
     function drawAccess() {
       var until = Number(localStorage.getItem("paidUntil") || "0");
@@ -420,8 +460,8 @@
     function show(name, pairId) {
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
       var left = document.getElementById("leftBtn");
-      if (name === "markets") { left.setAttribute("data-go", "access"); left.innerHTML = '<span class="dot"></span>TRIAL'; stopLive(false); }
-      else { left.setAttribute("data-go", "markets"); left.textContent = "←"; }
+      if (name === "markets") { left.setAttribute("data-go", "access"); left.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB000" stroke-width="1.4"><path d="M1 7 L7 2 L13 7"/><path d="M3 6.5 V12 H11 V6.5"/></svg><span>HOME</span>'; stopLive(false); }
+      else { left.setAttribute("data-go", "markets"); left.innerHTML = '<span>←</span><span>ALL MARKETS</span>'; }
       if (name === "pair") startLive(pairId || "BTCUSDT");
       if (name === "access") { stopLive(false); drawAccess(); }
     }
@@ -434,9 +474,10 @@
     }
     function placeTour() {
       var s = STEPS[step], el = document.querySelector(s[0]), hole = document.getElementById("tourHole");
-      document.getElementById("tourK").textContent = s[1];
+      document.getElementById("tourK").textContent = "";
       document.getElementById("tourN").textContent = (step + 1) + "/4";
-      document.getElementById("tourT").innerHTML = s[2];
+      document.getElementById("tourT").textContent = s[1];
+      document.body.className = "tour-lock";
       document.getElementById("tourNext").textContent = step === 3 ? "DONE" : "NEXT →";
       if (!el) return;
       el.scrollIntoView({ block: "center" });
@@ -444,7 +485,7 @@
       hole.style.left = (r.left - 6) + "px"; hole.style.top = (r.top - 6) + "px";
       hole.style.width = (r.width + 12) + "px"; hole.style.height = (r.height + 12) + "px";
     }
-    function endTour() { document.getElementById("tour").style.display = "none"; }
+    function endTour() { document.getElementById("tour").style.display = "none"; document.body.className = ""; }
     function openFromIntro() {
       var box = document.getElementById("intro");
       if (box) box.remove();
@@ -455,10 +496,10 @@
       setTimeout(placeTour, 80);
     }
     function playIntro() {
-      var LINES = ["YOUR PLAN BREAKS IN THE SHOCK", "WE FLAG THE SHOCK NOTHING ELSE", "WE DON'T TELL WHEN TO TRADE", "WE TELL YOU WHEN NOT TO"];
+      var LINES = ["We do not tell you how to trade", "We tell you when not to trade"];
       var DELTAS = [2, 1, -1, -2, 2, 6, 2, -1, 1, -1, 4, 6, -2, -4, 8, 5, -4, 7, -2, -1, 2, 2, -3, -6, -16, -4, 1];
       var phraseEl = document.getElementById("phrase"), lineI = 0;
-      var lineTimer = setInterval(function () { if (!document.getElementById("intro")) { clearInterval(lineTimer); return; } lineI = (lineI + 1) % 4; phraseEl.textContent = LINES[lineI]; }, 2800);
+      var lineTimer = setInterval(function () { if (!document.getElementById("intro")) { clearInterval(lineTimer); return; } lineI = (lineI + 1) % 2; phraseEl.textContent = LINES[lineI]; }, 2800);
       var canvas = document.getElementById("chart"), ctx = canvas.getContext("2d"), candles = [], close = 80, di = 0, extra = 0;
       for (var i = 0; i < 14; i++) { var open = close, n = di % 27; close = open + DELTAS[n]; candles.push({ open: open, close: close }); di++; }
       var shift = 0, last = performance.now(), shockOn = false;
@@ -466,13 +507,13 @@
         if (!document.getElementById("intro")) return;
         var dt = Math.min(48, now - last); last = now; shift += dt / 615;
         if (shift >= 1) {
-          shift -= 1; var n = di % 27, raw = n >= 22;
+          shift -= 1; var n = di % 27, raw = n >= 20;
           if (raw) extra = 6; else if (extra) extra--;
           var showShock = raw || extra > 0;
           candles.push({ open: candles[candles.length - 1].close, close: candles[candles.length - 1].close + DELTAS[n] }); di++;
           if (candles.length > 15) candles.shift();
-          if (showShock && !shockOn) { shockOn = true; document.getElementById("chartWrap").className = "chart-wrap hot"; document.getElementById("mode").textContent = "SHOCK"; document.getElementById("mode").className = "mode shock"; document.getElementById("risk").textContent = "DO NOT TRADE"; }
-          if (!showShock && shockOn) { shockOn = false; document.getElementById("chartWrap").className = "chart-wrap"; document.getElementById("mode").textContent = "NORMAL"; document.getElementById("mode").className = "mode"; document.getElementById("risk").textContent = "Trade your plan when normal"; }
+          if (showShock && !shockOn) { shockOn = true; document.getElementById("chartWrap").className = "chart-wrap hot"; document.getElementById("mode").textContent = "SHOCK"; document.getElementById("mode").className = "mode shock"; document.getElementById("risk").textContent = "Do not trade"; }
+          if (!showShock && shockOn) { shockOn = false; document.getElementById("chartWrap").className = "chart-wrap"; document.getElementById("mode").textContent = "NORMAL"; document.getElementById("mode").className = "mode"; document.getElementById("risk").textContent = "Trade your strategy"; }
         }
         var r = canvas.getBoundingClientRect();
         canvas.width = Math.max(1, r.width * devicePixelRatio); canvas.height = Math.max(1, r.height * devicePixelRatio);
@@ -493,6 +534,17 @@
     document.getElementById("pairLog").addEventListener("touchstart", function () { tapeHold = true; });
     document.getElementById("pairLog").addEventListener("touchend", function () { setTimeout(function () { tapeHold = false; }, 4000); });
     document.getElementById("search").addEventListener("input", draw);
+    document.getElementById("list").addEventListener("click", function (ev) {
+      var btn = ev.target.closest && ev.target.closest("[data-pin]");
+      if (!btn) return;
+      ev.preventDefault(); ev.stopPropagation();
+      var id = btn.getAttribute("data-pin"), i = pins.indexOf(id);
+      if (i >= 0) pins.splice(i, 1); else pins.unshift(id);
+      localStorage.setItem("pins", JSON.stringify(pins));
+      draw();
+    });
+    document.getElementById("shockQ").addEventListener("click", function () { document.getElementById("shockHelp").className = "on"; });
+    document.getElementById("shockHelpX").addEventListener("click", function () { document.getElementById("shockHelp").className = ""; });
     document.getElementById("payBtn").addEventListener("click", function () { openOffer(1); });
     document.getElementById("subscribeBtn").addEventListener("click", function () { openOffer(1); });
     document.getElementById("offerX").addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); askLeave(); });
