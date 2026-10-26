@@ -1,7 +1,8 @@
 import { getStore } from "@netlify/blobs";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const APP = process.env.APP_URL || "https://effervescent-kringle-9c130b.netlify.app";
+const APP = process.env.APP_URL || "https://saluki.netlify.app";
+const ADMIN = process.env.ADMIN_CHAT_ID || "";
 const DAY = 86400000;
 
 function api(method, body) {
@@ -32,6 +33,9 @@ async function send(id, text, rows) {
   const body = { chat_id: id, text: text };
   if (rows) body.reply_markup = { inline_keyboard: rows };
   await api("sendMessage", body);
+}
+async function notify(text) {
+  if (ADMIN) await send(ADMIN, text);
 }
 
 function openButton(user, label) {
@@ -72,6 +76,7 @@ export default async (req) => {
       user.waiting = "";
       await grant(user, Date.now() + 3650 * DAY, true);
       await send(id, "Thanks. Full access is now open.", openButton(user, "Open Saluki Terminal"));
+      await notify("Answer: " + user.answer + "\nid: " + id);
     }
     return new Response("ok");
   }
@@ -85,6 +90,7 @@ export default async (req) => {
     user = { id: id, key: key(), startedAt: Date.now(), until: Date.now() + 3 * DAY, permanent: false, reminded: false, muted: false };
     await save(user);
     await send(id, "Thanks for trying Saluki Terminal.\nYou have full access for 3 days.", openButton(user, "Back to Saluki Terminal"));
+    await notify("New start\nid: " + id + "\nname: " + (msg.from.username ? "@" + msg.from.username : msg.from.first_name || ""));
     return new Response("ok");
   }
 
@@ -98,6 +104,7 @@ export default async (req) => {
     user.lastHelp = text;
     await save(user);
     await send(id, "Thanks, we received it. We’ll look into it.");
+    await notify("Help from " + id + "\n" + text + "\nReply: /msg " + id + " your text");
     return new Response("ok");
   }
 
@@ -129,6 +136,14 @@ export default async (req) => {
       [{ text: "Yes, extend", callback_data: "yes" }],
       [{ text: "No, thanks", callback_data: "no" }]
     ]);
+    return new Response("ok");
+  }
+  if (String(id) === String(ADMIN) && text.indexOf("/msg ") === 0) {
+    const parts = text.split(" ");
+    const to = parts[1];
+    const body = parts.slice(2).join(" ");
+    if (to && body) await send(to, body);
+    await send(id, body ? "Sent to " + to : "Use /msg 123456 text");
     return new Response("ok");
   }
   if (text === "/start") {
