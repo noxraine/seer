@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="/manifest.json">
   <title>Regime PH</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,7 +44,7 @@
     .shock-x i, .shock-x b { position: absolute; left: 15px; top: 21px; width: 14px; height: 2px; background: #ffe7b0; }
     .shock-x b { transform: rotate(90deg); }
     body.tour-lock { overflow: hidden; }
-    .row { width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 36px minmax(0,1fr) auto auto; gap: 8px; align-items: center; min-height: 52px; }
+    .row { cursor: pointer; width: calc(100% - 32px); margin: 8px auto 0; padding: 12px; border: 1px solid #2A2A2A; color: #FFB000; text-decoration: none; display: grid; grid-template-columns: 36px minmax(0,1fr) auto auto; gap: 8px; align-items: center; min-height: 52px; }
     .row span { white-space: nowrap; }
     .row a { color: #FFB000; text-decoration: none; }
     .flag svg { display: block; margin: 0 auto; }
@@ -70,7 +75,12 @@
     .access-k { font-size: 11px; letter-spacing: 0.16em; color: #8A7000; }
     .access-days { margin-top: 10px; font-size: 56px; line-height: 1; }
     .btn { display: block; width: 100%; margin-top: 24px; height: 48px; border: 1px solid #FFB000; background: #FFB000; color: #000; font: inherit; letter-spacing: 0.14em; }
-    .legal { margin-top: 24px; font-size: 10px; line-height: 1.5; color: #6a5500; }
+    .legal { margin-top: 16px; font-size: 10px; line-height: 1.5; color: #6a5500; }
+    .home-btn { display: block; width: 100%; margin-top: 12px; height: 44px; border: 1px solid #5a4a28; background: transparent; color: #FFB000; font: inherit; letter-spacing: 0.08em; }
+    #homeHelp { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.82); }
+    #homeHelp.on { display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .home-card { width: 100%; max-width: 360px; border: 1px solid #2A2A2A; background: #000; padding: 48px 20px 24px; position: relative; color: #ffe7b0; line-height: 1.5; font-size: 14px; }
+    .home-card b { display: block; margin: 12px 0 4px; color: #FFB000; letter-spacing: 0.08em; }
     #offer { display: none; position: fixed; inset: 0; z-index: 70; background: #000; }
     #offer.on { display: flex; justify-content: center; }
     .offer-col { width: 100%; max-width: 420px; min-height: 100%; padding: 18vh 24px 32px; display: flex; flex-direction: column; position: relative; }
@@ -207,15 +217,16 @@
       <p class="fine">Not investment advice. This app provides informational and analytical content only. It does not consider your objectives, experience, or risk tolerance and does not guarantee accuracy or profitability. Trading involves a high risk of loss. You are solely responsible for your decisions.</p>
     </div>
   </section>
-  <div id="shockHelp"><div class="shock-card"><button class="shock-x" id="shockHelpX" type="button" aria-label="close"><i></i><b></b></button><p>Lorem Ipsum</p></div></div>
+  <div id="shockHelp"><div class="shock-card"><button class="shock-x" id="shockHelpX" type="button" aria-label="close"><i></i><b></b></button><p>We detect abnormal price and volume moves.<br>In SHOCK mode any strategy can break.<br>We do not recommend opening new positions until the market is NORMAL.</p></div></div>
+  <div id="homeHelp"><div class="home-card"><button class="shock-x" id="homeHelpX" type="button" aria-label="close"><i></i><b></b></button><b>IPHONE</b>Tap the share icon, then Add to Home Screen.<b>ANDROID</b>Open the browser menu, then Add to Home screen or Install app. After that the app opens without the browser address bar.</div></div>
   <section id="access" class="screen">
     <div class="access">
       <div class="access-k">ACCESS</div>
       <div class="access-days" id="daysLeft">0</div>
       <div id="daysLabel">DAYS LEFT</div>
-      <div class="access-k" id="payState">NOT PAID</div>
-      <button class="btn" id="payBtn" type="button">PAY WITH CRYPTO</button>
-      <p class="legal">Not investment advice. Regime describes range and volume versus the last hour. It is not a signal to buy or sell.</p>
+      <button class="btn" id="payBtn" type="button">GET FULL ACCESS</button>
+      <button class="home-btn" id="homeBtn" type="button">ADD TO HOME SCREEN</button>
+      <p class="legal">Not investment advice. This app provides informational and analytical content only. It does not consider your objectives, experience, or risk tolerance and does not guarantee accuracy or profitability. Trading involves a high risk of loss. You are solely responsible for your decisions.</p>
     </div>
   </section>
   <script>
@@ -445,8 +456,7 @@
       var d = Math.max(0, Math.ceil((until - Date.now()) / DAY));
       document.getElementById("daysLeft").textContent = d;
       document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
-      document.getElementById("payState").textContent = hasAccess() ? "PAID" : "NOT PAID";
-    }
+          }
     function startPayPoll() {
       var orderId = localStorage.getItem("orderId");
       if (!orderId || hasAccess()) return;
@@ -468,7 +478,7 @@
       document.querySelectorAll(".screen").forEach(function (el) { el.classList.toggle("active", el.id === name); });
       var left = document.getElementById("leftBtn");
       if (name === "markets") { shownPins = pins.slice(); draw(); left.setAttribute("data-go", "access"); left.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#FFB000" stroke-width="1.4"><path d="M1 7 L7 2 L13 7"/><path d="M3 6.5 V12 H11 V6.5"/></svg><span>HOME</span>'; stopLive(false); }
-      else { left.setAttribute("data-go", "markets"); left.innerHTML = '<span>←</span><span>ALL MARKETS</span>'; }
+      else { left.setAttribute("data-go", "markets"); left.innerHTML = '<span>←</span><span>ALL INSTRUMENTS</span>'; }
       if (name === "pair") startLive(pairId || "BTCUSDT");
       if (name === "access") { stopLive(false); drawAccess(); }
     }
@@ -503,7 +513,7 @@
       setTimeout(placeTour, 80);
     }
     function playIntro() {
-      var LINES = ["We do not tell you how to trade", "We tell you when not to trade"];
+      var LINES = ["We do not tell you how to trade", "We tell you when NOT to trade"];
       var DELTAS = [2, 1, -1, -2, 2, 6, 2, -1, 1, -1, 4, 6, -2, -4, 8, 5, -4, 7, -2, -1, 2, 2, -3, -6, -16, -4, 1];
       var phraseEl = document.getElementById("phrase"), lineI = 0;
       var lineTimer = setInterval(function () { if (!document.getElementById("intro")) { clearInterval(lineTimer); return; } lineI = (lineI + 1) % 2; phraseEl.textContent = LINES[lineI]; }, 2800);
@@ -543,17 +553,26 @@
     document.getElementById("search").addEventListener("input", function () { var v = this.value.toUpperCase(); if (this.value !== v) this.value = v; draw(); });
     document.getElementById("list").addEventListener("click", function (ev) {
       var btn = ev.target.closest && ev.target.closest("[data-pin]");
-      if (!btn) return;
-      ev.preventDefault(); ev.stopPropagation();
-      var id = btn.getAttribute("data-pin"), i = pins.indexOf(id);
-      if (i >= 0) pins.splice(i, 1); else pins.unshift(id);
-      localStorage.setItem("pins", JSON.stringify(pins));
-      draw();
+      if (btn) {
+        ev.preventDefault(); ev.stopPropagation();
+        var id = btn.getAttribute("data-pin"), i = pins.indexOf(id);
+        if (i >= 0) pins.splice(i, 1); else pins.unshift(id);
+        localStorage.setItem("pins", JSON.stringify(pins));
+        draw();
+        return;
+      }
+      var row = ev.target.closest && ev.target.closest(".row");
+      if (!row) return;
+      var link = row.querySelector("a");
+      if (link) { ev.preventDefault(); location.hash = link.getAttribute("href"); }
     });
     document.getElementById("shockQ").addEventListener("click", function () { document.getElementById("shockHelp").className = "on"; });
     document.getElementById("shockHelpX").addEventListener("click", function () { document.getElementById("shockHelp").className = ""; });
-    document.getElementById("payBtn").addEventListener("click", function () { openOffer(1); });
-    document.getElementById("subscribeBtn").addEventListener("click", function () { openOffer(1); });
+    function openBot() { window.open("https://t.me/your_cashier_bot", "_blank", "noopener"); }
+    document.getElementById("payBtn").addEventListener("click", openBot);
+    document.getElementById("subscribeBtn").addEventListener("click", openBot);
+    document.getElementById("homeBtn").addEventListener("click", function () { document.getElementById("homeHelp").className = "on"; });
+    document.getElementById("homeHelpX").addEventListener("click", function () { document.getElementById("homeHelp").className = ""; });
     document.getElementById("offerX").addEventListener("click", function (ev) { ev.preventDefault(); ev.stopPropagation(); askLeave(); });
     document.getElementById("offerPopNo").addEventListener("click", function () { openOffer(offerStep + 1); });
     document.getElementById("leftBtn").addEventListener("click", function (ev) {
