@@ -1,7 +1,7 @@
 {
-  "name": "seer",
+  "name": "saluki-terminal",
   "private": true,
   "dependencies": {
-    "@netlify/blobs": "^8.2.0"
+    "@netlify/blobs": "^8.1.0"
   }
 }

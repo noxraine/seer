@@ -1,0 +1,2 @@
+[functions."bot-remind"]
+  schedule = "0 8 * * *"
