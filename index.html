@@ -34,8 +34,7 @@
     .row { grid-template-columns: 44px 1.2fr 1fr auto; }
     .board .row { grid-template-columns: 1fr auto; }
     .stamp { position: relative; }
-    .q { display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 1px solid #fff; background: transparent; color: #fff; font: inherit; }
-    .stamp.unstable .q { display: block; }
+    .q { display: block; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 1px solid #fff; background: transparent; color: #fff; font: inherit; z-index: 2; }
     .fine { margin: 18px 16px 8px; font-size: 10px; line-height: 1.45; color: #6a5500; }
     #shockHelp { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.82); }
     #shockHelp.on { display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -80,6 +79,8 @@
     #homeHelp { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.82); }
     #homeHelp.on { display: flex; align-items: center; justify-content: center; padding: 24px; }
     .home-card { width: 100%; max-width: 360px; border: 1px solid #2A2A2A; background: #000; padding: 48px 20px 24px; position: relative; color: #ffe7b0; line-height: 1.5; font-size: 14px; }
+    .home-card .shock-x { z-index: 3; }
+    .home-card .shock-x i, .home-card .shock-x b { background: #ffe7b0; }
     .home-card b { display: block; margin: 12px 0 4px; color: #FFB000; letter-spacing: 0.08em; }
     #offer { display: none; position: fixed; inset: 0; z-index: 70; background: #000; }
     #offer.on { display: flex; justify-content: center; }
@@ -217,7 +218,7 @@
       <p class="fine">Not investment advice. This app provides informational and analytical content only. It does not consider your objectives, experience, or risk tolerance and does not guarantee accuracy or profitability. Trading involves a high risk of loss. You are solely responsible for your decisions.</p>
     </div>
   </section>
-  <div id="shockHelp"><div class="shock-card"><button class="shock-x" id="shockHelpX" type="button" aria-label="close"><i></i><b></b></button><p>We detect abnormal price and volume moves.<br>In SHOCK mode any strategy can break.<br>We do not recommend opening new positions until the market is NORMAL.</p></div></div>
+  <div id="shockHelp"><div class="shock-card"><button class="shock-x" id="shockHelpX" type="button" aria-label="close"><i></i><b></b></button><p>We detect abnormal price and volume moves.<br><br>In SHOCK mode any strategy can break.<br><br>We do not recommend opening new positions until the market is NORMAL.</p></div></div>
   <div id="homeHelp"><div class="home-card"><button class="shock-x" id="homeHelpX" type="button" aria-label="close"><i></i><b></b></button><b>IPHONE</b>Tap the share icon, then Add to Home Screen.<b>ANDROID</b>Open the browser menu, then Add to Home screen or Install app. After that the app opens without the browser address bar.</div></div>
   <section id="access" class="screen">
     <div class="access">
@@ -411,8 +412,14 @@
       poll = barTimer = tapeTimer = watchDog = null;
       if (!keep && sock) { try { sock.onclose = null; sock.close(); } catch (e) {} sock = null; }
     }
-    function markStale() { staleOn = true; setLive("STALE · NO LIVE DATA", true); paintRegime(); }
-    function markLive(how, id) { staleOn = false; setLive("LIVE · " + how + " " + id, false); lastBeat = Date.now(); paintRegime(); }
+    function markStale() {
+      if (!staleOn && openId) pushTape("connection lost", true);
+      staleOn = true; setLive("STALE · NO LIVE DATA", true); paintRegime();
+    }
+    function markLive(how, id) {
+      if (staleOn && openId) pushTape("connection restored", false);
+      staleOn = false; setLive("LIVE · " + how + " " + id, false); lastBeat = Date.now(); paintRegime();
+    }
     function restOne(id) {
       if (!onlineNow()) return markStale();
       fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + id).then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); }).then(function (row) {
@@ -502,8 +509,10 @@
       hole.style.left = (r.left - 6) + "px"; hole.style.top = (r.top - 6) + "px";
       hole.style.width = (r.width + 12) + "px"; hole.style.height = (r.height + 12) + "px";
     }
-    function endTour() { document.getElementById("tour").style.display = "none"; document.body.className = ""; }
+    function markOnboard() { localStorage.setItem("onboarded", "1"); }
+    function endTour() { markOnboard(); document.getElementById("tour").style.display = "none"; document.body.className = ""; }
     function openFromIntro() {
+      markOnboard();
       var box = document.getElementById("intro");
       if (box) box.remove();
       location.hash = "#pair/BTCUSDT";
@@ -604,8 +613,14 @@
         if (data.ok && data.until) { localStorage.setItem("paidUntil", String(data.until)); drawAccess(); if (openId) paintRegime(); }
       }).catch(function () {});
     }
+    if (localStorage.getItem("onboarded") === "1") {
+      var seenIntro = document.getElementById("intro");
+      if (seenIntro) seenIntro.remove();
+    }
     draw(); loadPrices(); warmBtc(); measurePing(); setInterval(loadPrices, 20000);
-    window.addEventListener("hashchange", route); startPayPoll(); playIntro();
+    window.addEventListener("hashchange", route); startPayPoll();
+    if (document.getElementById("intro")) playIntro();
+    else route();
   </script>
 </body>
 </html>
