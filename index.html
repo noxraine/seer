@@ -461,9 +461,19 @@
     function drawAccess() {
       var until = Number(localStorage.getItem("paidUntil") || "0");
       var d = Math.max(0, Math.ceil((until - Date.now()) / DAY));
-      document.getElementById("daysLeft").textContent = d;
-      document.getElementById("daysLabel").textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
-          }
+      var days = document.getElementById("daysLeft"), label = document.getElementById("daysLabel");
+      if (d > 365) {
+        days.textContent = "FULL ACCESS";
+        days.style.fontSize = "28px";
+        days.style.letterSpacing = "0.08em";
+        label.textContent = "";
+      } else {
+        days.textContent = d;
+        days.style.fontSize = "";
+        days.style.letterSpacing = "";
+        label.textContent = d === 1 ? "DAY LEFT" : "DAYS LEFT";
+      }
+    }
     function startPayPoll() {
       var orderId = localStorage.getItem("orderId");
       if (!orderId || hasAccess()) return;
