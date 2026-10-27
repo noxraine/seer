@@ -108,6 +108,16 @@ function langButtons() {
 function isBtn(text, key) {
   return LANGS.some(function (code) { return T[code][key] === text; });
 }
+function langOf(text) {
+  for (var i = 0; i < LANGS.length; i++) {
+    var code = LANGS[i];
+    if (T[code].help === text || T[code].access === text || T[code].lang === text) return code;
+  }
+  return "";
+}
+function esc(s) {
+  return String(s || "").replace(/&/g, "&"+"amp;").replace(/</g, "&"+"lt;").replace(/>/g, "&"+"gt;");
+}
 
 function api(method, body) {
   return fetch("https://api.telegram.org/bot" + TOKEN + "/" + method, {
@@ -213,24 +223,31 @@ export default async (req) => {
     await showLang(id);
     return new Response("ok");
   }
-  const lang = user.lang;
+  var lang = user.lang;
 
+  var fromBtn = langOf(text);
+  if (fromBtn && fromBtn !== lang) {
+    user.lang = fromBtn;
+    lang = fromBtn;
+    await save(user);
+  }
   if (isBtn(text, "lang")) {
     await showLang(id);
     return new Response("ok");
   }
-  if (user.waiting === "help" && text && text[0] !== "/" && !isBtn(text, "help") && !isBtn(text, "access")) {
+  if (text === "/help" || isBtn(text, "help")) {
+    user.waiting = "help";
+    user.lang = lang;
+    await save(user);
+    await send(id, tr(lang).helpAsk, menu(lang));
+    return new Response("ok");
+  }
+  if (text && text[0] !== "/" && !isBtn(text, "access") && !isBtn(text, "lang")) {
     user.waiting = "";
     user.lastHelp = text;
     await save(user);
     await send(id, tr(lang).helpDone, menu(lang));
-    await notify("Help from " + id + "\n" + text + "\nReply: /msg " + id + " your text");
-    return new Response("ok");
-  }
-  if (text === "/help" || isBtn(text, "help")) {
-    user.waiting = "help";
-    await save(user);
-    await send(id, tr(lang).helpAsk, menu(lang));
+    await notify("Help from " + id + "\n" + esc(text) + "\nReply: /msg " + id + " your text");
     return new Response("ok");
   }
   if (text === "/access" || isBtn(text, "access")) {
