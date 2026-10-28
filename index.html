@@ -10,7 +10,8 @@
   <link rel="icon" href="/favicon-96x96.png" type="image/png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
-  <title>Regime PH</title>
+  <title>Saluki Terminal</title>
+  <meta name="apple-mobile-web-app-title" content="Saluki">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #000; color: #FFB000; font-family: ui-monospace, monospace; min-height: 100vh; }
@@ -469,7 +470,11 @@
         days.style.fontSize = "28px";
         days.style.letterSpacing = "0.08em";
         label.textContent = "";
+        var pay = document.getElementById("payBtn");
+        if (pay) pay.textContent = "OPEN TELEGRAM BOT";
       } else {
+        var pay = document.getElementById("payBtn");
+        if (pay) pay.textContent = "GET FULL ACCESS";
         days.textContent = d;
         days.style.fontSize = "";
         days.style.letterSpacing = "";
@@ -636,3 +641,4 @@
   </script>
 </body>
 </html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="a91c025c-b577-4a48-9f83-1d18a374bc56" data-app-host="app.netlify.com" data-account-tier="personal"></script>
+<script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="a91c025c-b577-4a48-9f83-1d18a374bc56" data-app-host="app.netlify.com" data-account-tier="personal"></script>
